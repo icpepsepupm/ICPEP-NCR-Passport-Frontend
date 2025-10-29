@@ -1,0 +1,13 @@
+{
+  "event": [
+    { "id": 1, "slug": "kickoff-2025", "title": "ICpEP Kickoff 2025" },
+    { "id": 2, "slug": "code-clash", "title": "TechnoFest: Code Clash" },
+    { "id": 3, "slug": "cisco-launch", "title": "Cisco Net Connect Launch" }
+  ],
+  "workshop": [
+    { "id": 1, "slug": "web-dev-101", "title": "Web Development Workshop" }
+  ],
+  "seminar": [
+    { "id": 1, "slug": "ai-ml", "title": "AI & ML Seminar" }
+  ]
+}
