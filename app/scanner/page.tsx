@@ -16,7 +16,7 @@ export default function ScannerPage() {
   const [logs, setLogs] = React.useState<Log[]>([]);
   const [memberInput, setMemberInput] = React.useState("");
 
-  type AdminEvent = { id: number; title: string; date: string; location: string; attendees: number };
+  type AdminEvent = { id: number; title: string; date: string; location: string; attendees: number; badgeEmoji?: string; details?: string };
   const [events, setEvents] = React.useState<AdminEvent[]>([]);
   const eventsKey = "icpep-events";
   const attendanceKey = "icpep-attendance";

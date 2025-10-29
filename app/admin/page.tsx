@@ -11,6 +11,7 @@ import registrationsSeed from "@/app/data/registrations.json";
 import Modal from "@/app/components/ui/modal";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
+import EmojiPicker from "@/app/components/ui/emoji-picker";
 
 type AdminEvent = {
   id: number;
@@ -18,6 +19,8 @@ type AdminEvent = {
   date: string; // YYYY-MM-DD
   location: string;
   attendees: number;
+  badgeEmoji?: string;
+  details?: string;
 };
 
 export default function AdminPage() {
@@ -33,8 +36,10 @@ export default function AdminPage() {
   type Draft = Omit<AdminEvent, "id" | "attendees"> & { attendees?: number } & { id?: number };
   const [openForm, setOpenForm] = React.useState(false);
   const [editingId, setEditingId] = React.useState<number | null>(null);
-  const [draft, setDraft] = React.useState<Draft>({ title: "", date: "", location: "" });
+  const [draft, setDraft] = React.useState<Draft>({ title: "", date: "", location: "", badgeEmoji: "", details: "" });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [emojiOpen, setEmojiOpen] = React.useState(false);
+  // No external badge catalog; admin defines an emoji and details per event.
   const [openDeleteId, setOpenDeleteId] = React.useState<number | null>(null);
   const [activeTab, setActiveTab] = React.useState<"events" | "members" | "census" | "reports">("events");
   const [openAttendeesFor, setOpenAttendeesFor] = React.useState<number | null>(null);
@@ -204,7 +209,7 @@ export default function AdminPage() {
     const ev = events.find((e) => e.id === id);
     if (!ev) return;
     setEditingId(id);
-    setDraft({ title: ev.title, date: ev.date, location: ev.location, attendees: ev.attendees });
+    setDraft({ title: ev.title, date: ev.date, location: ev.location, attendees: ev.attendees, badgeEmoji: ev.badgeEmoji ?? "", details: ev.details ?? "" });
     setErrors({});
     setOpenForm(true);
   }
@@ -214,6 +219,8 @@ export default function AdminPage() {
     if (!d.title?.trim()) next.title = "Required";
     if (!d.date?.trim()) next.date = "Required";
     if (!d.location?.trim()) next.location = "Required";
+    if (!d.badgeEmoji?.trim()) next.badgeEmoji = "Provide an emoji (e.g., 🏅)";
+    if (!d.details?.trim()) next.details = "Provide event details";
     if (d.attendees != null && (Number.isNaN(d.attendees) || d.attendees < 0)) next.attendees = "Invalid";
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -230,6 +237,8 @@ export default function AdminPage() {
         date: draft.date.trim(),
         location: draft.location.trim(),
         attendees,
+        badgeEmoji: draft.badgeEmoji?.trim() || undefined,
+        details: draft.details?.trim() || undefined,
       };
       setEvents((prev) => [next, ...prev]);
     } else {
@@ -237,7 +246,7 @@ export default function AdminPage() {
       setEvents((prev) =>
         prev.map((e) =>
           e.id === editingId
-            ? { ...e, title: draft.title.trim(), date: draft.date.trim(), location: draft.location.trim(), attendees }
+            ? { ...e, title: draft.title.trim(), date: draft.date.trim(), location: draft.location.trim(), attendees, badgeEmoji: draft.badgeEmoji?.trim() || undefined, details: draft.details?.trim() || undefined }
             : e
         )
       );
@@ -422,6 +431,13 @@ export default function AdminPage() {
                         <div className="text-[11px] text-cyan-200/70">Attendees</div>
                         <div className="text-sm text-emerald-400">{ev.attendees}</div>
                       </div>
+                      <div className="md:col-span-4">
+                        <div className="text-[11px] text-cyan-200/70">Badge</div>
+                        <div className="text-sm">{ev.badgeEmoji ? `${ev.badgeEmoji} ${ev.title}` : "—"}</div>
+                        {ev.details ? (
+                          <div className="mt-1 text-[12px] text-cyan-200/80 line-clamp-2">{ev.details}</div>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-2 self-stretch md:self-auto">
                       <button
@@ -593,6 +609,47 @@ export default function AdminPage() {
               error={errors.location}
               placeholder="Room 101"
             />
+            <div>
+              <label className="mb-1 block text-xs text-cyan-200/80">Badge Emoji</label>
+              <div className="flex items-center gap-2">
+                <input
+                  value={draft.badgeEmoji}
+                  onChange={(e) => setDraft((d) => ({ ...d, badgeEmoji: e.target.value }))}
+                  placeholder="e.g., 🏅, 🚀, 🤖"
+                  className={`h-10 w-full rounded-md bg-transparent px-3 text-sm outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30 ${errors.badgeEmoji ? "border border-red-500/60" : "border border-cyan-400/40"}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setEmojiOpen((v) => !v)}
+                  className="h-10 shrink-0 rounded-md border border-cyan-400/30 bg-black/30 px-3 text-sm text-cyan-100/90 hover:border-cyan-300/60"
+                >
+                  {emojiOpen ? "Hide" : "Pick"}
+                </button>
+              </div>
+              {errors.badgeEmoji ? (
+                <div className="mt-1 text-[11px] text-red-300">{errors.badgeEmoji}</div>
+              ) : null}
+              {emojiOpen ? (
+                <EmojiPicker
+                  onSelect={(e) => {
+                    setDraft((d) => ({ ...d, badgeEmoji: e }));
+                    setEmojiOpen(false);
+                  }}
+                />
+              ) : null}
+            </div>
+            <div className="md:col-span-2">
+              <label className="mb-1 block text-xs text-cyan-200/80">Event Details (also used as Badge details)</label>
+              <textarea
+                value={draft.details}
+                onChange={(e) => setDraft((d) => ({ ...d, details: e.target.value }))}
+                placeholder="Describe the event: agenda, venue, speakers, etc."
+                className={`min-h-[88px] w-full rounded-md bg-transparent p-3 text-sm outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30 ${errors.details ? "border border-red-500/60" : "border border-cyan-400/40"}`}
+              />
+              {errors.details ? (
+                <div className="mt-1 text-[11px] text-red-300">{errors.details}</div>
+              ) : null}
+            </div>
             <Input
               label="Attendees"
               type="number"
