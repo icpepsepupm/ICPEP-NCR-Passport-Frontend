@@ -37,3 +37,8 @@ body {
   box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25),
     0 0 24px rgba(34, 211, 238, 0.2), 0 0 48px rgba(34, 211, 238, 0.1);
 }
+
+/* Transparent background for react-three-fiber canvases used in 3D coin */
+.r3f-transparent canvas {
+  background-color: transparent !important;
+}
