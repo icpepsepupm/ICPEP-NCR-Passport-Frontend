@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import data from "@/app/data/badges.json";
+import eventsSeed from "@/app/data/events.json";
+import { getCurrentUser } from "@/app/lib/client-auth";
 import Link from "next/link";
 import Modal from "@/app/components/ui/modal";
 
@@ -31,17 +33,65 @@ const categories = ["All", "Technical", "Leadership", "Community"] as const;
 type Cat = (typeof categories)[number];
 
 export default function BadgesPage() {
+  const user = getCurrentUser();
   const [q, setQ] = React.useState("");
   const [cat, setCat] = React.useState<Cat>("All");
   const [selected, setSelected] = React.useState<(typeof data)["badges"][number] | null>(null);
 
-  const filtered = data.badges.filter((b) => {
+  type AdminEvent = { id: number; title: string; date: string; location: string; attendees: number };
+  const [events, setEvents] = React.useState<AdminEvent[]>([]);
+  const [attendance, setAttendance] = React.useState<Record<string, string[]>>({});
+
+  React.useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("icpep-events");
+      setEvents(raw ? (JSON.parse(raw) as AdminEvent[]) : (eventsSeed as AdminEvent[]));
+    } catch {
+      setEvents(eventsSeed as AdminEvent[]);
+    }
+    try {
+      const rawA = window.localStorage.getItem("icpep-attendance");
+      setAttendance(rawA ? (JSON.parse(rawA) as Record<string, string[]>) : {});
+    } catch {
+      setAttendance({});
+    }
+  }, []);
+
+  // Build dynamic badges from attendance for the current user
+  const dynamicBadges = React.useMemo(() => {
+    if (!user) return [] as (typeof data)["badges"]; // empty
+    const memId = user.memberId ?? "";
+    const earnedEventIds = Object.entries(attendance)
+      .filter(([, arr]) => arr.includes(memId))
+      .map(([k]) => Number(k));
+    const byId = new Map<number, AdminEvent>();
+    for (const e of events) byId.set(e.id, e);
+    const badges = earnedEventIds
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .map((ev) => ({
+        id: `event-${(ev as AdminEvent).id}`,
+        title: (ev as AdminEvent).title,
+        date: (ev as AdminEvent).date,
+        icon: "🏅",
+        category: "Technical" as const,
+      }));
+    return badges as (typeof data)["badges"]; // shape-compatible
+  }, [attendance, events, user]);
+
+  const allBadges = React.useMemo(() => {
+    // merge static demo badges and dynamic earned event badges
+    const merged = [...dynamicBadges, ...data.badges];
+    return merged;
+  }, [dynamicBadges]);
+
+  const filtered = allBadges.filter((b) => {
     const matchesCat = cat === "All" || b.category === cat;
     const matchesQ = q.trim() === "" || b.title.toLowerCase().includes(q.toLowerCase());
     return matchesCat && matchesQ;
   });
 
-  const counts = data.badges.reduce(
+  const counts = allBadges.reduce(
     (acc, b) => {
       acc.total += 1;
       acc[b.category.toLowerCase() as "technical" | "leadership" | "community"] += 1;
