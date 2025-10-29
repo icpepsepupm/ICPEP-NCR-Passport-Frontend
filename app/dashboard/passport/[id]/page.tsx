@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { getCurrentUser, clearCurrentUser } from "@/app/lib/client-auth";
 import { QRCodeSVG } from "qrcode.react";
 import Link from "next/link";
-import Image from "next/image";
+import IcpepCoin from "@/app/components/three/IcpepCoin";
 import activities from "@/app/data/activities.json";
 
 type ActivityMap = Record<string, Array<{ id: number; slug: string; title: string }>>;
@@ -120,16 +120,11 @@ export default function PassportPage() {
           </div>
         </div>
 
-        {/* Right: Big Logo */}
-        <div className="hidden justify-center md:flex">
-          <Image
-            src="/ICpEP.SE Logo.png"
-            alt="ICpEP.SE Logo"
-            width={460}
-            height={460}
-            className="drop-shadow-[0_0_35px_rgba(34,211,238,0.35)]"
-            priority
-          />
+        {/* Right: 3D Coin (no border, no clipping) */}
+        <div className="hidden md:block">
+          <div className="r3f-transparent relative h-[460px] w-full rounded-2xl">
+            <IcpepCoin />
+          </div>
         </div>
       </div>
     </div>
