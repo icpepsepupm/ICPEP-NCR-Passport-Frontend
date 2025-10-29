@@ -35,10 +35,13 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
           name: match.name,
           email: match.email,
           memberId: match.memberId,
-          school: match.school,
+            school: match.school,
+            role: (match as { role?: "member" | "scanner" | "admin" }).role ?? "member",
         })
       );
-  setTimeout(() => router.push("/dashboard/event/kickoff-2025"), 300);
+        const role = (match as { role?: "member" | "scanner" | "admin" }).role ?? "member";
+        const target = role === "admin" ? "/admin" : role === "scanner" ? "/scanner" : "/dashboard";
+        setTimeout(() => router.push(target), 300);
     } else {
       // For signup we just simulate success for now
       setLoading(true);
@@ -48,9 +51,10 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
         email: String(fd.get("email") || ""),
         memberId: String(fd.get("memberId") || "TEMP-NEW"),
         school: String(fd.get("school") || ""),
+          role: "member",
       };
   localStorage.setItem("icpep-user", JSON.stringify(user));
-  setTimeout(() => router.push("/dashboard/event/kickoff-2025"), 400);
+        setTimeout(() => router.push("/dashboard/event/kickoff-2025"), 400);
     }
   }
 

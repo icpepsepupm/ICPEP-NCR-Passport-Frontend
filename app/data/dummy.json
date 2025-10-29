@@ -6,7 +6,8 @@
       "password": "pass1234",
       "age": 20,
       "school": "PUP Manila",
-      "memberId": "IC-2025-0001"
+      "memberId": "IC-2025-0001",
+      "role": "member"
     },
     {
       "name": "Test Account",
@@ -14,7 +15,26 @@
       "password": "hunter2",
       "age": 22,
       "school": "PUP Manila",
-      "memberId": "IC-2025-0002"
+      "memberId": "IC-2025-0002",
+      "role": "member"
+    },
+    {
+      "name": "Scanner User",
+      "email": "scanner@example.com",
+      "password": "scanme",
+      "age": 23,
+      "school": "PUP Manila",
+      "memberId": "SC-2025-0001",
+      "role": "scanner"
+    },
+    {
+      "name": "Admin User",
+      "email": "admin@example.com",
+      "password": "adminpass",
+      "age": 24,
+      "school": "PUP Manila",
+      "memberId": "AD-2025-0001",
+      "role": "admin"
     }
   ]
 }

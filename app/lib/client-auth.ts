@@ -5,6 +5,7 @@ export type BasicUser = {
   email: string;
   memberId: string;
   school?: string;
+  role?: "member" | "scanner" | "admin";
 };
 
 const KEY = "icpep-user";
