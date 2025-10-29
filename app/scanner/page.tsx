@@ -1,23 +1,37 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getCurrentUser } from "@/app/lib/client-auth";
-
-const events = [
-  { id: 1, label: "ICpEP Kickoff 2025" },
-  { id: 2, label: "TechnoFest: Code Clash" },
-  { id: 3, label: "Cisco Net Connect Launch" },
-];
+import eventsSeed from "@/app/data/events.json";
 
 type Log = { time: string; memberId: string; eventId: number; result: "success" | "duplicate" };
 
 export default function ScannerPage() {
+  const router = useRouter();
   const [selected, setSelected] = React.useState<number | "" | null>("");
   const [status, setStatus] = React.useState<string>("Camera idle");
   const [scanned, setScanned] = React.useState<string | null>(null);
   const [logs, setLogs] = React.useState<Log[]>([]);
+  const [memberInput, setMemberInput] = React.useState("");
+
+  type AdminEvent = { id: number; title: string; date: string; location: string; attendees: number };
+  const [events, setEvents] = React.useState<AdminEvent[]>([]);
+  const eventsKey = "icpep-events";
+  const attendanceKey = "icpep-attendance";
+
+  // Load events from localStorage or seed
+  React.useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(eventsKey) : null;
+      if (raw) {
+        setEvents(JSON.parse(raw) as AdminEvent[]);
+        return;
+      }
+    } catch {}
+    setEvents(eventsSeed as AdminEvent[]);
+  }, []);
 
   // Camera state
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
@@ -114,17 +128,48 @@ export default function ScannerPage() {
     setLogs((prev) => [entry, ...prev].slice(0, 6));
   }
 
-  function simulateScan(result: "success" | "duplicate") {
-    if (!selected) return setStatus("Select an event first");
-    const mem = user?.memberId ?? "ICPEP-XXXX-XXX";
-    if (result === "success") {
+  function updateEventAttendeeCount(eventId: number, count: number) {
+    try {
+      const raw = localStorage.getItem(eventsKey);
+      const list: AdminEvent[] = raw ? JSON.parse(raw) : (eventsSeed as AdminEvent[]);
+      const updated = list.map((e) => (e.id === eventId ? { ...e, attendees: count } : e));
+      localStorage.setItem(eventsKey, JSON.stringify(updated));
+      setEvents(updated);
+    } catch {}
+  }
+
+  function grantAttendance(memberId: string, eventId: number): "success" | "duplicate" {
+    if (!memberId) return "duplicate";
+    try {
+      const raw = localStorage.getItem(attendanceKey);
+      const map: Record<string, string[]> = raw ? JSON.parse(raw) : {};
+      const key = String(eventId);
+      const set = new Set([...(map[key] ?? [])]);
+      if (set.has(memberId)) {
+        setScanned(memberId);
+        setStatus("Duplicate scan — already granted for this event.");
+        return "duplicate";
+      }
+      set.add(memberId);
+      const arr = Array.from(set);
+      const next = { ...map, [key]: arr };
+      localStorage.setItem(attendanceKey, JSON.stringify(next));
+      // Update attendee count in events
+      updateEventAttendeeCount(eventId, arr.length);
       setStatus("Scan successful — badge granted.");
       setScanned(null);
-    } else {
-      setStatus("Duplicate scan — already granted for this event.");
-      setScanned(mem);
+      return "success";
+    } catch {
+      setStatus("Error recording attendance");
+      return "duplicate";
     }
-    log(result);
+  }
+
+  function simulateScan(result: "success" | "duplicate") {
+    if (!selected) return setStatus("Select an event first");
+    const mem = memberInput.trim() || user?.memberId || "ICPEP-XXXX-XXX";
+    const outcome = result === "success" ? grantAttendance(mem, Number(selected)) : "duplicate";
+    log(outcome);
   }
 
   return (
@@ -151,9 +196,17 @@ export default function ScannerPage() {
               <div className="text-[10px] text-cyan-200/60">event check-in system</div>
             </div>
           </div>
-          <Link href="/dashboard" className="text-cyan-300 underline-offset-4 hover:underline">
-            ← Back to Dashboard
-          </Link>
+          <button
+            onClick={() => {
+              try {
+                window.localStorage.removeItem("icpep-user");
+              } catch {}
+              router.push("/auth/login");
+            }}
+            className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] text-cyan-100/90 transition hover:border-cyan-300/60"
+          >
+            Log out
+          </button>
         </header>
 
         {!isScanner ? (
@@ -282,10 +335,20 @@ export default function ScannerPage() {
                   <option value="" className="bg-[#0b0f13]">Choose an event</option>
                   {events.map((ev) => (
                     <option key={ev.id} value={ev.id} className="bg-[#0b0f13]">
-                      {ev.label}
+                      {ev.title}
                     </option>
                   ))}
                 </select>
+              </div>
+              <div className="mt-3">
+                <label className="mb-1 block text-xs text-cyan-200/80">Member ID to simulate</label>
+                <input
+                  value={memberInput}
+                  onChange={(e) => setMemberInput(e.target.value)}
+                  placeholder="e.g. IC-2025-0001"
+                  className="h-10 w-full rounded-md border border-cyan-400/40 bg-transparent px-3 text-sm outline-none placeholder:text-cyan-200/50 focus:border-cyan-300"
+                />
+                <p className="mt-1 text-[11px] text-cyan-200/60">Used by the simulate buttons when testing.</p>
               </div>
             </div>
 

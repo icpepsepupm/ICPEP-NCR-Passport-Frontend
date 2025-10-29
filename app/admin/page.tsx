@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getCurrentUser } from "@/app/lib/client-auth";
 import eventsData from "@/app/data/events.json";
@@ -21,6 +21,7 @@ type AdminEvent = {
 };
 
 export default function AdminPage() {
+  const router = useRouter();
   const user = getCurrentUser();
   const isAdmin = user?.role === "admin";
 
@@ -111,7 +112,25 @@ export default function AdminPage() {
     for (const m of membersObj.members) idx.set(m.id, m);
     return idx;
   }, [membersObj.members]);
-  const attendanceMap = attendanceData as Record<string, string[]>; // eventId -> memberIds
+  // Attendance: merge seed JSON with localStorage overrides produced by Scanner
+  const attStorageKey = "icpep-attendance";
+  const [attendanceOverride, setAttendanceOverride] = React.useState<Record<string, string[]>>({});
+  React.useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? window.localStorage.getItem(attStorageKey) : null;
+      if (raw) setAttendanceOverride(JSON.parse(raw) as Record<string, string[]>);
+    } catch {}
+  }, []);
+
+  const attendanceMap = React.useMemo(() => {
+    const base = attendanceData as Record<string, string[]>;
+    const merged: Record<string, string[]> = { ...base };
+    for (const [k, v] of Object.entries(attendanceOverride)) {
+      const set = new Set([...(merged[k] ?? []), ...v]);
+      merged[k] = Array.from(set);
+    }
+    return merged;
+  }, [attendanceOverride]);
 
   const totalMembers = membersObj.totalMembers ?? membersObj.members.length;
   const totalEvents = events.length;
@@ -262,12 +281,17 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <Link
-              href="/dashboard"
-              className="text-cyan-300 underline-offset-4 hover:underline"
+            <button
+              onClick={() => {
+                try {
+                  window.localStorage.removeItem("icpep-user");
+                } catch {}
+                router.push("/auth/login");
+              }}
+              className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] text-cyan-100/90 transition hover:border-cyan-300/60"
             >
-              ← Back to Dashboard
-            </Link>
+              Log out
+            </button>
           </div>
 
           {/* Tabs + Create */}

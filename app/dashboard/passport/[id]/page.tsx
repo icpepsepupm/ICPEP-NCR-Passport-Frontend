@@ -7,15 +7,13 @@ import { QRCodeSVG } from "qrcode.react";
 import Link from "next/link";
 import Image from "next/image";
 import activities from "@/app/data/activities.json";
-type Activities = Record<string, Array<{ id: number; slug: string; title: string }>>;
-const ACT: Activities = activities as Activities;
 
-export default function DashboardActivityPage() {
+type ActivityMap = Record<string, Array<{ id: number; slug: string; title: string }>>;
+const ACT: ActivityMap = activities as ActivityMap;
+
+export default function PassportPage() {
   const router = useRouter();
-  const { activity_type, activity_id } = useParams<{
-    activity_type: string;
-    activity_id: string;
-  }>();
+  const { id } = useParams<{ id: string }>();
 
   const [user, setUser] = React.useState<ReturnType<typeof getCurrentUser> | null>(null);
   const [ready, setReady] = React.useState(false);
@@ -27,29 +25,29 @@ export default function DashboardActivityPage() {
     if (!u) router.replace("/auth/login");
   }, [router]);
 
-  const activityType = activity_type || "event";
-  const rawId = activity_id || "1";
-  const isDigits = /^\d+$/.test(rawId);
+  const isDigits = /^\d+$/.test(id);
   const toNumericId = React.useMemo(() => {
-    if (isDigits) return parseInt(rawId, 10);
-    const list = ACT[activityType];
-    const found = list?.find((a) => a.slug === rawId);
-    return found?.id ?? 1;
-  }, [activityType, isDigits, rawId]);
+    if (isDigits) return parseInt(id, 10);
+    // Fallback: resolve slug across all activity categories
+    for (const list of Object.values(ACT)) {
+      const found = list.find((a) => a.slug === id);
+      if (found) return found.id;
+    }
+    return 1;
+  }, [id, isDigits]);
 
-  // If the URL is not numeric, normalize the route to the numeric ID.
+  // Normalize to numeric id in URL
   React.useEffect(() => {
     if (!isDigits) {
-      router.replace(`/dashboard/${activityType}/${toNumericId}`);
+      router.replace(`/dashboard/passport/${toNumericId}`);
     }
-  }, [isDigits, activityType, toNumericId, router]);
+  }, [isDigits, toNumericId, router]);
 
   if (!ready || !user) return null;
 
-  // Encode a compact JSON payload the scanner can parse later.
+  // Encode a compact JSON payload the scanner can parse later (no activity type).
   const qrPayload = JSON.stringify({
     memberId: user.memberId,
-    activityType,
     activityId: String(toNumericId),
   });
 
@@ -76,7 +74,7 @@ export default function DashboardActivityPage() {
         {/* Left: ID Card */}
         <div className="mx-auto w-[460px] max-w-[95vw] rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/95 p-8 neon-panel backdrop-blur">
           <div className="mx-auto mb-2 text-center text-cyan-200/80">
-            <div className="orbitron text-sm uppercase tracking-wider">{activityType}</div>
+            <div className="orbitron text-sm uppercase tracking-wider">passport</div>
             <div className="text-xs">{toNumericId}</div>
           </div>
           <div className="mx-auto mb-6 w-[260px] rounded-lg bg-black/40 p-3">
