@@ -7,6 +7,8 @@ import { getCurrentUser } from "@/app/lib/client-auth";
 import Link from "next/link";
 import Modal from "@/app/components/ui/modal";
 
+type Badge = { id: string; title: string; date?: string; category: "Technical" | "Leadership" | "Community"; icon?: string; details?: string };
+
 const CAT_STYLES = {
   Technical: {
     bg: "bg-cyan-500/10",
@@ -36,9 +38,9 @@ export default function BadgesPage() {
   const user = getCurrentUser();
   const [q, setQ] = React.useState("");
   const [cat, setCat] = React.useState<Cat>("All");
-  const [selected, setSelected] = React.useState<(typeof data)["badges"][number] | null>(null);
+  const [selected, setSelected] = React.useState<Badge | null>(null);
 
-  type AdminEvent = { id: number; title: string; date: string; location: string; attendees: number };
+  type AdminEvent = { id: number; title: string; date: string; location: string; attendees: number; badgeEmoji?: string; details?: string };
   const [events, setEvents] = React.useState<AdminEvent[]>([]);
   const [attendance, setAttendance] = React.useState<Record<string, string[]>>({});
 
@@ -57,32 +59,40 @@ export default function BadgesPage() {
     }
   }, []);
 
-  // Build dynamic badges from attendance for the current user
+  // Build dynamic badges from attendance for the current user using badge mapping from events
   const dynamicBadges = React.useMemo(() => {
-    if (!user) return [] as (typeof data)["badges"]; // empty
+    if (!user) return [] as Badge[]; // empty
     const memId = user.memberId ?? "";
     const earnedEventIds = Object.entries(attendance)
       .filter(([, arr]) => arr.includes(memId))
       .map(([k]) => Number(k));
-    const byId = new Map<number, AdminEvent>();
-    for (const e of events) byId.set(e.id, e);
-    const badges = earnedEventIds
-      .map((id) => byId.get(id))
-      .filter(Boolean)
-      .map((ev) => ({
-        id: `event-${(ev as AdminEvent).id}`,
-        title: (ev as AdminEvent).title,
-        date: (ev as AdminEvent).date,
-        icon: "🏅",
-        category: "Technical" as const,
-      }));
-    return badges as (typeof data)["badges"]; // shape-compatible
+
+    const eventById = new Map<number, AdminEvent>();
+    for (const e of events) eventById.set(e.id, e);
+
+    const picked: Badge[] = [];
+    for (const id of earnedEventIds) {
+      const ev = eventById.get(id);
+      if (!ev) continue;
+      picked.push({
+        id: `event-${id}`,
+        title: ev.title,
+        date: ev.date,
+        icon: ev.badgeEmoji || "🏅",
+        category: "Technical",
+        details: ev.details,
+      });
+    }
+    return picked;
   }, [attendance, events, user]);
 
   const allBadges = React.useMemo(() => {
-    // merge static demo badges and dynamic earned event badges
-    const merged = [...dynamicBadges, ...data.badges];
-    return merged;
+    // Merge with dedupe by id; prefer earned (dynamic) over static
+    const catalog = (data as { badges: Badge[] }).badges as Badge[];
+    const map = new Map<string, Badge>();
+    for (const b of dynamicBadges) map.set(b.id, b);
+    for (const b of catalog) if (!map.has(b.id)) map.set(b.id, b);
+    return Array.from(map.values());
   }, [dynamicBadges]);
 
   const filtered = allBadges.filter((b) => {
@@ -193,7 +203,7 @@ function Stat({ label, value, color }: { label: string; value: number; color?: "
   );
 }
 
-function BadgeCard({ badge, onOpen }: { badge: (typeof data)["badges"][number]; onOpen: () => void }) {
+function BadgeCard({ badge, onOpen }: { badge: Badge; onOpen: () => void }) {
   const style = CAT_STYLES[badge.category as keyof typeof CAT_STYLES] ?? CAT_STYLES.Technical;
   return (
     <div
@@ -210,7 +220,7 @@ function BadgeCard({ badge, onOpen }: { badge: (typeof data)["badges"][number]; 
   );
 }
 
-function BadgeDetails({ badge, onClose }: { badge: (typeof data)["badges"][number]; onClose: () => void }) {
+function BadgeDetails({ badge, onClose }: { badge: Badge; onClose: () => void }) {
   const style = CAT_STYLES[badge.category as keyof typeof CAT_STYLES] ?? CAT_STYLES.Technical;
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-[140px_1fr]">
@@ -220,11 +230,13 @@ function BadgeDetails({ badge, onClose }: { badge: (typeof data)["badges"][numbe
           <span className={`rounded-full px-2 py-0.5 text-xs ${style.chip}`}>{badge.category}</span>
           <span className="text-xs text-cyan-100/70">{badge.date}</span>
         </div>
-        <p className="mt-3 text-sm text-cyan-100/80">
-          You earned this badge by participating in &quot;{badge.title}&quot;. This is demo data —
-          wire it to your backend to display richer details like venue, organizers, and
-          points earned.
-        </p>
+        {badge.details ? (
+          <p className="mt-3 whitespace-pre-wrap text-sm text-cyan-100/80">{badge.details}</p>
+        ) : (
+          <p className="mt-3 text-sm text-cyan-100/80">
+            You earned this badge by participating in &quot;{badge.title}&quot;.
+          </p>
+        )}
         <div className="mt-4 flex gap-2">
           <button onClick={onClose} className="h-9 rounded-md border border-cyan-400/40 px-3 text-sm text-cyan-100/90 hover:border-cyan-300/60">
             Close
