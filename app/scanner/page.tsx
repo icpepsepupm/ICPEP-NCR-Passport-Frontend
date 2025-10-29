@@ -40,6 +40,8 @@ export default function ScannerPage() {
     "idle" | "requesting" | "granted" | "denied" | "error"
   >("idle");
   const [camError, setCamError] = React.useState<string | null>(null);
+  const lastScanRef = React.useRef<string | null>(null);
+  const scanningRef = React.useRef(false);
 
   const user = getCurrentUser();
 
@@ -108,15 +110,9 @@ export default function ScannerPage() {
     };
   }, [stream]);
 
-  // Politely prompt for camera on page load for scanner role
-  React.useEffect(() => {
-    if (isScanner && !autoReqRef.current && camState === "idle" && isSecure) {
-      autoReqRef.current = true;
-      void requestCamera();
-    }
-  }, [isScanner, camState, isSecure, requestCamera]);
-
-  function log(result: "success" | "duplicate") {
+  // QR decode via BarcodeDetector when available
+  // Stable log helper (for recent activity list)
+  const log = React.useCallback((result: "success" | "duplicate") => {
     const mem = user?.memberId ?? "ICPEP-XXXX-XXX";
     const now = new Date();
     const entry: Log = {
@@ -126,9 +122,10 @@ export default function ScannerPage() {
       result,
     };
     setLogs((prev) => [entry, ...prev].slice(0, 6));
-  }
+  }, [selected, user?.memberId]);
 
-  function updateEventAttendeeCount(eventId: number, count: number) {
+  // Update attendee count on event and persist
+  const updateEventAttendeeCount = React.useCallback((eventId: number, count: number) => {
     try {
       const raw = localStorage.getItem(eventsKey);
       const list: AdminEvent[] = raw ? JSON.parse(raw) : (eventsSeed as AdminEvent[]);
@@ -136,9 +133,10 @@ export default function ScannerPage() {
       localStorage.setItem(eventsKey, JSON.stringify(updated));
       setEvents(updated);
     } catch {}
-  }
+  }, [eventsKey]);
 
-  function grantAttendance(memberId: string, eventId: number): "success" | "duplicate" {
+  // Record attendance and update event counts
+  const grantAttendance = React.useCallback((memberId: string, eventId: number): "success" | "duplicate" => {
     if (!memberId) return "duplicate";
     try {
       const raw = localStorage.getItem(attendanceKey);
@@ -163,7 +161,86 @@ export default function ScannerPage() {
       setStatus("Error recording attendance");
       return "duplicate";
     }
-  }
+  }, [attendanceKey, updateEventAttendeeCount]);
+
+  const handleDecodedPayload = React.useCallback((raw: string) => {
+    try {
+      const parsed = JSON.parse(raw) as { memberId?: string; activityId?: string | number };
+      const memberId = (parsed.memberId ?? "").toString().trim();
+      const evId = parsed.activityId != null ? Number(parsed.activityId) : (selected ? Number(selected) : NaN);
+      if (!memberId) {
+        setStatus("QR missing memberId");
+        return;
+      }
+      if (!Number.isFinite(evId)) {
+        setStatus("QR missing activityId — select an event to use instead");
+        if (selected) {
+          const outcome = grantAttendance(memberId, Number(selected));
+          log(outcome);
+        }
+        return;
+      }
+      // Validate the event exists
+      const exists = events.some((e) => e.id === evId);
+      const eventIdToUse = exists ? evId : (selected ? Number(selected) : NaN);
+      if (!Number.isFinite(eventIdToUse)) {
+        setStatus("Unknown event — select an event first");
+        return;
+      }
+      const outcome = grantAttendance(memberId, Number(eventIdToUse));
+      log(outcome);
+    } catch {
+      // Not JSON? ignore but surface brief status
+      setStatus("Unrecognized QR content");
+    }
+  }, [events, selected, grantAttendance, log]);
+
+  React.useEffect(() => {
+    let raf = 0;
+    async function tick() {
+      if (!videoRef.current || !('BarcodeDetector' in window)) {
+        raf = window.requestAnimationFrame(tick);
+        return;
+      }
+      try {
+        // @ts-expect-error: BarcodeDetector is a newer web API
+        const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+        const codes = await detector.detect(videoRef.current);
+        if (codes && codes.length > 0) {
+          const raw = codes[0].rawValue || codes[0].raw || "";
+          if (raw && raw !== lastScanRef.current) {
+            lastScanRef.current = raw;
+            handleDecodedPayload(raw);
+          }
+        }
+      } catch {
+        // ignore detection errors; continue trying
+      }
+      raf = window.requestAnimationFrame(tick);
+    }
+    if (camState === "granted" && stream && !scanningRef.current) {
+      scanningRef.current = true;
+      raf = window.requestAnimationFrame(tick);
+    }
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      scanningRef.current = false;
+    };
+  }, [camState, stream, handleDecodedPayload]);
+
+  // Politely prompt for camera on page load for scanner role
+  React.useEffect(() => {
+    if (isScanner && !autoReqRef.current && camState === "idle" && isSecure) {
+      autoReqRef.current = true;
+      void requestCamera();
+    }
+  }, [isScanner, camState, isSecure, requestCamera]);
+
+  
+
+  
+
+  
 
   function simulateScan(result: "success" | "duplicate") {
     if (!selected) return setStatus("Select an event first");
@@ -262,6 +339,9 @@ export default function ScannerPage() {
                     ) : null}
                     {camError ? (
                       <p className="mt-1 text-[11px] text-yellow-200/80">{camError}</p>
+                    ) : null}
+                    {!("BarcodeDetector" in window) ? (
+                      <p className="mt-1 text-[11px] text-cyan-200/70">This browser may not support live QR decoding. Use the Simulate buttons below or try a Chromium-based browser.</p>
                     ) : null}
                     <div className="mt-3">
                       <button
