@@ -1,0 +1,17 @@
+{
+  "totalMembers": 290,
+  "members": [
+    { "id": "ICPEP-2025-001", "name": "Alex Cruz", "chapter": "UP Manila" },
+    { "id": "ICPEP-2025-002", "name": "Bianca Santos", "chapter": "PUP Manila" },
+    { "id": "ICPEP-2025-003", "name": "Carlos Reyes", "chapter": "FEU Tech" },
+    { "id": "ICPEP-2025-004", "name": "Dana Flores", "chapter": "NU Manila" },
+    { "id": "ICPEP-2025-005", "name": "Evan Lim", "chapter": "TIP Manila" },
+    { "id": "ICPEP-2025-006", "name": "Faith Dela Cruz", "chapter": "ADAMSON" },
+    { "id": "ICPEP-2025-007", "name": "Gio Tan", "chapter": "UST" },
+    { "id": "ICPEP-2025-008", "name": "Hannah Lee", "chapter": "UP Diliman" },
+    { "id": "ICPEP-2025-009", "name": "Ivan Garcia", "chapter": "Mapua" },
+    { "id": "ICPEP-2025-010", "name": "Jade Ramos", "chapter": "PUP Sta. Mesa" },
+    { "id": "ICPEP-2025-011", "name": "Kenji Sato", "chapter": "DLSU" },
+    { "id": "ICPEP-2025-012", "name": "Lara Mendoza", "chapter": "UE Manila" }
+  ]
+}

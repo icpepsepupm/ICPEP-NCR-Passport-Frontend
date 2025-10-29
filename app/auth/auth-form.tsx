@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Input from "@/app/components/ui/input";
 import Button from "@/app/components/ui/button";
 import usersData from "@/app/data/dummy.json";
+import registrationsSeed from "@/app/data/registrations.json";
 
 export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -43,18 +44,30 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
         const target = role === "admin" ? "/admin" : role === "scanner" ? "/scanner" : "/dashboard";
         setTimeout(() => router.push(target), 300);
     } else {
-      // For signup we just simulate success for now
+      // Signup: create a pending registration and redirect to waiting page
       setLoading(true);
       const fd = new FormData(e.currentTarget);
-      const user = {
-        name: String(fd.get("name") || ""),
-        email: String(fd.get("email") || ""),
-        memberId: String(fd.get("memberId") || "TEMP-NEW"),
-        school: String(fd.get("school") || ""),
-          role: "member",
-      };
-  localStorage.setItem("icpep-user", JSON.stringify(user));
-        setTimeout(() => router.push("/dashboard/event/kickoff-2025"), 400);
+      const name = String(fd.get("name") || "").trim();
+      const email = String(fd.get("email") || "").trim();
+      const school = String(fd.get("school") || "").trim();
+
+      try {
+        const key = "icpep-registrations";
+        const raw = localStorage.getItem(key);
+        type Registration = { id: number; name: string; email: string; chapter?: string; status: "pending" | "approved" };
+        const current: Registration[] = raw ? (JSON.parse(raw) as Registration[]) : (registrationsSeed as Registration[]);
+        const nextId = Math.max(0, ...current.map((r) => r.id)) + 1;
+        const next = [
+          { id: nextId, name, email, chapter: school || undefined, status: "pending" as const },
+          ...current,
+        ];
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch {
+        // ignore storage errors in demo
+      }
+
+      // Do not log the user in; show pending approval screen
+      setTimeout(() => router.push("/auth/pending"), 400);
     }
   }
 
