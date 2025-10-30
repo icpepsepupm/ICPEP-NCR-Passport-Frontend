@@ -112,11 +112,11 @@ export default function BadgesPage() {
 
   return (
     <div className="min-h-dvh bg-[#06090c] px-6 py-10 text-cyan-50">
-      <header className="mx-auto max-w-7xl">
+      <header className="mx-auto max-w-7xl animate-fade-in">
         <div className="mb-2 flex items-center justify-between">
           <Link
             href="/dashboard"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-cyan-400/40 px-3 text-sm text-cyan-100/90 transition hover:border-cyan-300/60"
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-cyan-400/40 px-3 text-sm text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95"
           >
             ← Back to Dashboard
           </Link>
@@ -128,7 +128,7 @@ export default function BadgesPage() {
         <div className="mt-4 h-px w-full bg-gradient-to-r from-transparent via-cyan-400/30 to-transparent" />
       </header>
 
-      <main className="mx-auto mt-6 max-w-7xl rounded-2xl border border-cyan-400/20 bg-[#0b0f13]/70 p-6 neon-panel">
+      <main className="mx-auto mt-6 max-w-7xl rounded-2xl border border-cyan-400/20 bg-[#0b0f13]/70 p-6 neon-panel animate-slide-up">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Total Badges" value={counts.total} />
@@ -196,7 +196,7 @@ function Stat({ label, value, color }: { label: string; value: number; color?: "
       ? "ring-emerald-400/40"
       : "ring-cyan-400/40";
   return (
-    <div className={`rounded-lg border border-cyan-400/20 bg-black/40 p-4 ring-1 ${ring}`}>
+    <div className={`rounded-lg border border-cyan-400/20 bg-black/40 p-4 ring-1 transition-all duration-300 hover:scale-105 animate-fade-in ${ring}`}>
       <div className="text-2xl font-semibold text-cyan-50">{value}</div>
       <div className="text-xs text-cyan-100/70">{label}</div>
     </div>
@@ -207,13 +207,16 @@ function BadgeCard({ badge, onOpen }: { badge: Badge; onOpen: () => void }) {
   const style = CAT_STYLES[badge.category as keyof typeof CAT_STYLES] ?? CAT_STYLES.Technical;
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border border-cyan-400/20 bg-black/40 p-5 transition-transform duration-200 hover:-translate-y-1 hover:shadow-xl hover:shadow-cyan-400/10 ${style.bg}`}
+      className={`group relative overflow-hidden rounded-2xl border border-cyan-400/20 bg-black/40 p-5 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-cyan-400/20 animate-fade-in ${style.bg}`}
     >
-      <span className={`absolute right-3 top-3 rounded-full px-2 py-0.5 text-xs ${style.chip}`}>{badge.category}</span>
-      <div className={`flex h-14 w-14 items-center justify-center rounded-xl text-3xl ring-1 ${style.ring}`}>{badge.icon}</div>
+      <span className={`absolute right-3 top-3 rounded-full px-2 py-0.5 text-xs transition-transform duration-200 group-hover:scale-110 ${style.chip}`}>{badge.category}</span>
+      <div className={`flex h-14 w-14 items-center justify-center rounded-xl text-3xl ring-1 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 ${style.ring}`}>{badge.icon}</div>
       <div className="mt-4 font-medium leading-tight">{badge.title}</div>
       <div className="text-xs text-cyan-100/70">{badge.date}</div>
-      <button onClick={onOpen} className="mt-4 h-9 w-full rounded-md bg-cyan-400 text-sm font-semibold text-black orbitron transition-colors hover:bg-cyan-300">
+      <button 
+        onClick={onOpen} 
+        className="mt-4 h-9 w-full rounded-md bg-cyan-400 text-sm font-semibold text-black orbitron transition-all duration-200 hover:bg-cyan-300 hover:scale-105 active:scale-95"
+      >
         View Details
       </button>
     </div>
