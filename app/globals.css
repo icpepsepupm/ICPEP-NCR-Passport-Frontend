@@ -1,8 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card-bg: rgba(11, 15, 19, 0.95);
+  --text-primary: #22d3ee;
+  --text-secondary: rgba(165, 243, 252, 0.8);
+  --text-muted: rgba(165, 243, 252, 0.6);
+  --input-bg: rgba(0, 0, 0, 0.3);
+  --input-border: rgba(34, 211, 238, 0.4);
+  --input-text: #a5f3fc;
+  --qr-color: #22d3ee;
+}
+
+:root.light {
+  --background: #f0f9ff;
+  --foreground: #0c4a6e;
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --text-primary: #0e7490;
+  --text-secondary: rgba(14, 116, 144, 0.8);
+  --text-muted: rgba(14, 116, 144, 0.6);
+  --input-bg: rgba(240, 249, 255, 0.5);
+  --input-border: rgba(34, 211, 238, 0.5);
+  --input-text: #0c4a6e;
+  --qr-color: #000000;
 }
 
 @theme inline {
@@ -12,17 +33,18 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Input placeholder colors */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 /* Orbitron utility class for headings and key UI labels */
