@@ -72,12 +72,12 @@ export default function PassportPage() {
 
       <div className="relative mx-auto grid min-h-dvh max-w-7xl grid-cols-1 items-center gap-12 p-6 md:grid-cols-2">
         {/* Left: ID Card */}
-        <div className="mx-auto w-[460px] max-w-[95vw] rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/95 p-8 neon-panel backdrop-blur">
-          <div className="mx-auto mb-2 text-center text-cyan-200/80">
+        <div className="mx-auto w-[460px] max-w-[95vw] rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/95 p-8 neon-panel backdrop-blur animate-slide-up">
+          <div className="mx-auto mb-2 text-center text-cyan-200/80 animate-fade-in stagger-1">
             <div className="orbitron text-sm uppercase tracking-wider">passport</div>
             <div className="text-xs">{toNumericId}</div>
           </div>
-          <div className="mx-auto mb-6 w-[260px] rounded-lg bg-black/40 p-3">
+          <div className="mx-auto mb-6 w-[260px] rounded-lg bg-black/40 p-3 transition-transform duration-300 hover:scale-105 animate-fade-in stagger-2">
             <QRCodeSVG
               value={qrPayload}
               level="M"
@@ -88,21 +88,21 @@ export default function PassportPage() {
             />
           </div>
           <div className="space-y-5 text-center">
-            <div>
+            <div className="animate-fade-in stagger-3">
               <div className="orbitron text-xl text-cyan-200">Name</div>
               <div className="text-base text-cyan-100/85">{user.name}</div>
             </div>
-            <div>
+            <div className="animate-fade-in stagger-4">
               <div className="orbitron text-xl text-cyan-200">School</div>
               <div className="text-base text-cyan-100/85">{user.school ?? "—"}</div>
             </div>
-            <div>
+            <div className="animate-fade-in stagger-4">
               <div className="orbitron text-xl text-cyan-200">Member ID</div>
               <div className="text-base text-cyan-100/85">{user.memberId}</div>
             </div>
-            <div className="pt-2">
+            <div className="pt-2 animate-fade-in stagger-4">
               <Link
-                className="inline-flex h-10 items-center rounded-md bg-cyan-400 px-5 font-semibold text-black orbitron hover:bg-cyan-300"
+                className="inline-flex h-10 items-center rounded-md bg-cyan-400 px-5 font-semibold text-black orbitron hover:bg-cyan-300 transition-all duration-200 hover:scale-105 active:scale-95"
                 href="/badges"
               >
                 View Badges
@@ -113,7 +113,7 @@ export default function PassportPage() {
                 clearCurrentUser();
                 router.push("/auth/login");
               }}
-              className="mt-2 text-xs text-cyan-200/70 underline-offset-4 hover:underline"
+              className="mt-2 text-xs text-cyan-200/70 underline-offset-4 hover:underline transition-all duration-200 hover:text-cyan-200"
             >
               Log out
             </button>
@@ -121,7 +121,7 @@ export default function PassportPage() {
         </div>
 
         {/* Right: 3D Coin (no border, no clipping) */}
-        <div className="hidden md:block">
+        <div className="hidden md:block animate-fade-in">
           <div className="r3f-transparent relative h-[460px] w-full rounded-2xl">
             <IcpepCoin />
           </div>
