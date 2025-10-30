@@ -117,7 +117,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
         )}
 
         {error ? (
-          <p className="text-sm text-rose-300">{error}</p>
+          <p className="text-sm text-rose-500 dark:text-rose-300">{error}</p>
         ) : null}
 
         <Button type="submit" className="mt-2" disabled={loading} loading={loading}>
@@ -125,10 +125,10 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
         </Button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-cyan-100/70">
+      <p className="mt-4 text-center text-sm transition-colors duration-300" style={{ color: "var(--text-muted)" }}>
         {isLogin ? "Don't have an account? " : "Already have an account? "}
         <Link
-          className="text-cyan-300 underline-offset-4 hover:underline"
+          className="text-cyan-500 dark:text-cyan-300 underline-offset-4 hover:underline transition-colors duration-300"
           href={isLogin ? "/auth/signup" : "/auth/login"}
         >
           {isLogin ? "Sign up" : "Log in"}

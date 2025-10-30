@@ -18,7 +18,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="w-full">
         {label ? (
-          <label htmlFor={inputId} className="mb-1 block text-sm text-cyan-200/80">
+          <label htmlFor={inputId} className="mb-1 block text-sm transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
             {label}
           </label>
         ) : null}
@@ -26,12 +26,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           ref={ref}
           className={cx(
-            "w-full h-10 rounded-md border bg-transparent px-3 text-cyan-100 outline-none",
-            "placeholder:text-cyan-200/40",
-            "border-cyan-400/40 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30",
-            "transition-all duration-200",
+            "w-full h-10 rounded-md border outline-none px-3 transition-all duration-300",
             className
           )}
+          style={{
+            backgroundColor: "var(--input-bg)",
+            borderColor: "var(--input-border)",
+            color: "var(--input-text)",
+          }}
           {...props}
         />
         {error ? (

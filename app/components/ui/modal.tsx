@@ -50,20 +50,21 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
       role="dialog"
     >
       <div
-        className={`neon-panel w-[min(92vw,680px)] rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/95 p-6 text-cyan-50 shadow-xl transition-all duration-200 ${
+        className={`neon-panel w-[min(92vw,680px)] rounded-2xl border border-cyan-400/25 p-6 shadow-xl transition-all duration-200 ${
           isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
         }`}
+        style={{ background: "var(--card-bg)", color: "var(--foreground)" }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
           {title ? (
-            <h2 className="orbitron text-xl tracking-wide text-cyan-100">{title}</h2>
+            <h2 className="orbitron text-xl tracking-wide text-cyan-400">{title}</h2>
           ) : (
             <span />
           )}
           <button
             onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-cyan-400/30 text-cyan-200 transition-all duration-200 hover:bg-cyan-400/10 hover:scale-110 active:scale-95"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-cyan-400/30 text-cyan-400 transition-all duration-200 hover:bg-cyan-400/10 hover:scale-110 active:scale-95 cursor-pointer"
             aria-label="Close"
           >
             ×

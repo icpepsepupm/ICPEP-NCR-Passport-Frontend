@@ -238,7 +238,7 @@ export default function ScannerClientPage() {
   }
 
   return (
-    <div className="relative min-h-dvh isolate overflow-hidden bg-black text-cyan-50">
+    <div className="relative min-h-dvh isolate overflow-hidden transition-colors duration-300" style={{ background: "var(--background)", color: "var(--foreground)" }}>
       {/* soft glows */}
       <div
         aria-hidden
@@ -251,14 +251,14 @@ export default function ScannerClientPage() {
         style={{ background: "radial-gradient(closest-side, rgba(34,211,238,0.18), transparent 70%)" }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-6 py-6">
+      <div className="relative mx-auto max-w-7xl px-6 py-6 mt-10">
         {/* Header */}
         <header className="flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
             <Image src="/ICpEP.SE Logo.png" alt="logo" width={28} height={28} />
             <div>
-              <div className="orbitron text-lg leading-none">QR SCANNER</div>
-              <div className="text-[10px] text-cyan-200/60">event check-in system</div>
+              <div className="orbitron text-lg leading-none text-cyan-400">QR SCANNER</div>
+              <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>event check-in system</div>
             </div>
           </div>
           <button
@@ -268,7 +268,8 @@ export default function ScannerClientPage() {
               } catch {}
               router.push("/auth/login");
             }}
-            className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95"
+            className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95 cursor-pointer"
+            style={{ color: "var(--text-secondary)" }}
           >
             Log out
           </button>
@@ -283,32 +284,33 @@ export default function ScannerClientPage() {
         {/* Main grid */}
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-[1fr_340px]">
           {/* Scanner panel */}
-          <div className="rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/90 p-6 neon-panel animate-slide-up">
+          <div className="rounded-2xl border border-cyan-400/25 p-6 neon-panel animate-slide-up transition-all duration-300" style={{ background: "var(--card-bg)" }}>
             <div className="flex items-center justify-between">
-              <h2 className="orbitron text-lg">Scan QR Code</h2>
+              <h2 className="orbitron text-lg text-cyan-400">Scan QR Code</h2>
               <div className="flex items-center gap-3">
                 {stream ? (
                   <button
                     onClick={stopCamera}
-                    className="h-8 rounded-md border border-cyan-400/40 px-2 text-[11px] text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95"
+                    className="h-8 rounded-md border border-cyan-400/40 px-2 text-[11px] transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95 cursor-pointer"
+                    style={{ color: "var(--text-secondary)" }}
                   >
                     Disable Camera
                   </button>
                 ) : (
                   <button
                     onClick={requestCamera}
-                    className="h-8 rounded-md bg-cyan-400 px-2 text-[11px] font-semibold text-black orbitron transition-all duration-200 hover:bg-cyan-300 hover:scale-105 active:scale-95"
+                    className="h-8 rounded-md bg-cyan-400 px-2 text-[11px] font-semibold text-black orbitron transition-all duration-200 hover:bg-cyan-300 hover:scale-105 active:scale-95 cursor-pointer"
                     disabled={camState === "requesting"}
                   >
                     {camState === "requesting" ? "Requesting…" : "Enable Camera"}
                   </button>
                 )}
-                <div className="text-xs text-cyan-200/70">Status: {status}</div>
+                <div className="text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Status: {status}</div>
               </div>
             </div>
-            <p className="mb-4 mt-1 text-xs text-cyan-100/70">Point camera at member QR Code to check them in</p>
+            <p className="mb-4 mt-1 text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Point camera at member QR Code to check them in</p>
 
-            <div className="rounded-xl border border-cyan-400/25 bg-black/40 p-6">
+            <div className="rounded-xl border border-cyan-400/25 p-6 transition-all duration-300" style={{ background: "var(--input-bg)" }}>
               <div className="relative mx-auto h-[340px] max-w-[520px] overflow-hidden rounded-[20px] border-2 border-dashed border-cyan-400/30 bg-gradient-to-b from-cyan-400/5 to-transparent">
                 {stream ? (
                   <video
@@ -321,7 +323,7 @@ export default function ScannerClientPage() {
                 ) : (
                   <div className="grid h-full place-content-center text-center">
                     <div className="text-5xl text-cyan-200/80">📷</div>
-                    <p className="mt-2 text-xs text-cyan-100/80">Camera is not enabled.</p>
+                    <p className="mt-2 text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Camera is not enabled.</p>
                     {!isSecure ? (
                       <p className="mt-1 text-[11px] text-yellow-200/80">Use HTTPS or localhost to allow camera access.</p>
                     ) : null}
@@ -329,13 +331,13 @@ export default function ScannerClientPage() {
                       <p className="mt-1 text-[11px] text-yellow-200/80">{camError}</p>
                     ) : null}
                     {!("BarcodeDetector" in window) ? (
-                      <p className="mt-1 text-[11px] text-cyan-200/70">This browser may not support live QR decoding. Use the Simulate buttons below or try a Chromium-based browser.</p>
+                      <p className="mt-1 text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>This browser may not support live QR decoding. Use the Simulate buttons below or try a Chromium-based browser.</p>
                     ) : null}
                     <div className="mt-3">
                       <button
                         onClick={requestCamera}
                         disabled={camState === "requesting"}
-                        className="h-9 rounded-md bg-cyan-400 px-3 text-sm font-semibold text-black orbitron transition-colors hover:bg-cyan-300 disabled:opacity-60"
+                        className="h-9 rounded-md bg-cyan-400 px-3 text-sm font-semibold text-black orbitron transition-colors hover:bg-cyan-300 disabled:opacity-60 cursor-pointer"
                       >
                         {camState === "requesting" ? "Requesting…" : "Enable Camera"}
                       </button>
@@ -356,30 +358,31 @@ export default function ScannerClientPage() {
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button
                 onClick={() => simulateScan("success")}
-                className="h-10 rounded-md bg-cyan-400 text-sm font-semibold text-black orbitron transition-all duration-200 hover:bg-cyan-300 hover:scale-105 active:scale-95"
+                className="h-10 rounded-md bg-cyan-400 text-sm font-semibold text-black orbitron transition-all duration-200 hover:bg-cyan-300 hover:scale-105 active:scale-95 cursor-pointer"
               >
                 Simulate Successful Scan
               </button>
               <button
                 onClick={() => simulateScan("duplicate")}
-                className="h-10 rounded-md border border-cyan-400/40 text-sm text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95"
+                className="h-10 rounded-md border border-cyan-400/40 text-sm transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95 cursor-pointer"
+                style={{ color: "var(--text-secondary)" }}
               >
                 Simulate Duplicate Scan
               </button>
             </div>
 
             {/* Recent logs */}
-            <div className="mt-6 rounded-xl border border-cyan-400/20 bg-black/30 p-4">
-              <div className="orbitron text-sm">Recent Activity</div>
+            <div className="mt-6 rounded-xl border border-cyan-400/20 p-4 transition-all duration-300" style={{ background: "var(--input-bg)" }}>
+              <div className="orbitron text-sm text-cyan-400">Recent Activity</div>
               {logs.length === 0 ? (
-                <p className="mt-2 text-xs text-cyan-100/70">No scans yet.</p>
+                <p className="mt-2 text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>No scans yet.</p>
               ) : (
                 <ul className="mt-2 space-y-1 text-xs">
                   {logs.map((l, i) => (
-                    <li key={i} className="flex items-center justify-between rounded-md border border-cyan-400/10 bg-black/30 px-3 py-2">
-                      <span className="text-cyan-100/80">{l.time}</span>
-                      <span className="text-cyan-100/80">Event #{l.eventId}</span>
-                      <span className="text-cyan-100/80">{l.memberId}</span>
+                    <li key={i} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-all duration-300" style={{ background: "var(--input-bg)" }}>
+                      <span className="transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{l.time}</span>
+                      <span className="transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Event #{l.eventId}</span>
+                      <span className="transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{l.memberId}</span>
                       <span className={l.result === "success" ? "text-emerald-300" : "text-yellow-300"}>
                         {l.result === "success" ? "granted" : "duplicate"}
                       </span>
@@ -391,38 +394,46 @@ export default function ScannerClientPage() {
           </div>
 
           {/* Side panels */}
-          <aside className="space-y-6 animate-fade-in stagger-2">
-            <div className="rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/90 p-4 neon-panel">
-              <div className="orbitron text-sm">Select Event</div>
+          <aside className="space-y-6 animate-fade-in stagger-2 mt-8 md:mt-0">
+            <div className="rounded-2xl border border-cyan-400/25 p-4 neon-panel transition-all duration-300" style={{ background: "var(--card-bg)" }}>
+              <div className="orbitron text-sm text-cyan-400">Select Event</div>
               <div className="mt-2 flex items-center gap-2">
                 <select
                   value={selected ?? ""}
                   onChange={(e) => setSelected(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="h-10 w-full rounded-md border border-cyan-400/40 bg-transparent px-3 text-sm outline-none transition-all duration-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30"
+                  className="h-10 w-full rounded-md border border-cyan-400/40 px-3 text-sm outline-none transition-all duration-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30 cursor-pointer"
+                  style={{
+                    backgroundColor: "var(--input-bg)",
+                    color: "var(--input-text)",
+                  }}
                 >
-                  <option value="" className="bg-[#0b0f13]">Choose an event</option>
+                  <option value="">Choose an event</option>
                   {events.map((ev) => (
-                    <option key={ev.id} value={ev.id} className="bg-[#0b0f13]">
+                    <option key={ev.id} value={ev.id}>
                       {ev.title}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="mt-3">
-                <label className="mb-1 block text-xs text-cyan-200/80">Member ID to simulate</label>
+                <label className="mb-1 block text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Member ID to simulate</label>
                 <input
                   value={memberInput}
                   onChange={(e) => setMemberInput(e.target.value)}
                   placeholder="e.g. IC-2025-0001"
-                  className="h-10 w-full rounded-md border border-cyan-400/40 bg-transparent px-3 text-sm outline-none placeholder:text-cyan-200/50 transition-all duration-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30"
+                  className="h-10 w-full rounded-md border border-cyan-400/40 px-3 text-sm outline-none placeholder:text-cyan-200/50 transition-all duration-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30"
+                  style={{
+                    backgroundColor: "var(--input-bg)",
+                    color: "var(--input-text)",
+                  }}
                 />
-                <p className="mt-1 text-[11px] text-cyan-200/60">Used by the simulate buttons when testing.</p>
+                <p className="mt-1 text-[11px] transition-colors duration-300" style={{ color: "var(--text-muted)" }}>Used by the simulate buttons when testing.</p>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-yellow-400/30 bg-yellow-900/20 p-4">
-              <div className="orbitron text-sm">Already scanned</div>
-              <p className="mt-1 text-xs text-yellow-200/80">
+            <div className="rounded-2xl border border-yellow-400/30 bg-yellow-100 dark:bg-yellow-900/20 p-4">
+              <div className="orbitron text-sm text-black dark:text-yellow-300">Already scanned</div>
+              <p className="mt-1 text-xs text-black dark:text-yellow-300">
                 {scanned
                   ? `Member ${scanned} has already scanned this event`
                   : "No duplicate scans in this session."}

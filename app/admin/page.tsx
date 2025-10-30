@@ -277,7 +277,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="relative min-h-dvh isolate overflow-hidden bg-black text-cyan-50">
+    <div className="relative min-h-dvh isolate overflow-hidden transition-colors duration-300" style={{ background: "var(--background)", color: "var(--foreground)" }}>
       {/* soft glows */}
       <div
         aria-hidden
@@ -290,15 +290,15 @@ export default function AdminPage() {
         style={{ background: "radial-gradient(closest-side, rgba(34,211,238,0.18), transparent 70%)" }}
       />
 
-      <div className="relative mx-auto max-w-7xl px-6 py-6">
+      <div className="relative mx-auto max-w-7xl px-6 py-20">
         {/* Top bar */}
-        <div className="rounded-xl border border-cyan-400/15 bg-[#0b0f13]/70 p-4 backdrop-blur-sm animate-fade-in">
+        <div className="rounded-xl border border-cyan-400/15 p-4 backdrop-blur-sm animate-fade-in transition-all duration-300" style={{ background: "var(--card-bg)" }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Image src="/ICpEP.SE Logo.png" alt="logo" width={28} height={28} />
               <div>
-                <div className="orbitron text-lg leading-none">Admin Dashboard</div>
-                <div className="text-[10px] text-cyan-200/60">ICpEP NCR Management</div>
+                <div className="orbitron text-lg leading-none text-cyan-400">Admin Dashboard</div>
+                <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>ICpEP NCR Management</div>
               </div>
             </div>
 
@@ -309,7 +309,8 @@ export default function AdminPage() {
                 } catch {}
                 router.push("/auth/login");
               }}
-              className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95"
+              className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95 cursor-pointer"
+              style={{ color: "var(--text-secondary)" }}
             >
               Log out
             </button>
@@ -321,44 +322,48 @@ export default function AdminPage() {
               <button
                 onClick={() => setActiveTab("events")}
                 className={
-                  "h-8 rounded-full px-4 text-[11px] " +
+                  "h-8 rounded-full px-4 text-[11px] cursor-pointer transition-all duration-300 " +
                   (activeTab === "events"
-                    ? "border border-cyan-400/30 bg-cyan-400/10 text-cyan-100/90 ring-1 ring-cyan-400/40"
-                    : "border border-cyan-400/20 text-cyan-100/70 hover:border-cyan-400/40")
+                    ? "border border-cyan-400/30 bg-cyan-400 text-black font-semibold orbitron"
+                    : "border border-cyan-400/20 hover:border-cyan-400/40")
                 }
+                style={activeTab === "events" ? {} : { color: "var(--text-secondary)" }}
               >
                 Events
               </button>
               <button
                 onClick={() => setActiveTab("members")}
                 className={
-                  "h-8 rounded-full px-4 text-[11px] " +
+                  "h-8 rounded-full px-4 text-[11px] cursor-pointer transition-all duration-300 " +
                   (activeTab === "members"
-                    ? "border border-cyan-400/30 bg-cyan-400/10 text-cyan-100/90 ring-1 ring-cyan-400/40"
-                    : "border border-cyan-400/20 text-cyan-100/70 hover:border-cyan-400/40")
+                    ? "border border-cyan-400/30 bg-cyan-400 text-black font-semibold orbitron"
+                    : "border border-cyan-400/20 hover:border-cyan-400/40")
                 }
+                style={activeTab === "members" ? {} : { color: "var(--text-secondary)" }}
               >
                 Members
               </button>
               <button
                 onClick={() => setActiveTab("census")}
                 className={
-                  "h-8 rounded-full px-4 text-[11px] " +
+                  "h-8 rounded-full px-4 text-[11px] cursor-pointer transition-all duration-300 " +
                   (activeTab === "census"
-                    ? "border border-cyan-400/30 bg-cyan-400/10 text-cyan-100/90 ring-1 ring-cyan-400/40"
-                    : "border border-cyan-400/20 text-cyan-100/70 hover:border-cyan-400/40")
+                    ? "border border-cyan-400/30 bg-cyan-400 text-black font-semibold orbitron"
+                    : "border border-cyan-400/20 hover:border-cyan-400/40")
                 }
+                style={activeTab === "census" ? {} : { color: "var(--text-secondary)" }}
               >
                 Census
               </button>
               <button
                 onClick={() => setActiveTab("reports")}
                 className={
-                  "h-8 rounded-full px-4 text-[11px] " +
+                  "h-8 rounded-full px-4 text-[11px] cursor-pointer transition-all duration-300 " +
                   (activeTab === "reports"
-                    ? "border border-cyan-400/30 bg-cyan-400/10 text-cyan-100/90 ring-1 ring-cyan-400/40"
-                    : "border border-cyan-400/20 text-cyan-100/70 hover:border-cyan-400/40")
+                    ? "border border-cyan-400/30 bg-cyan-400 text-black font-semibold orbitron"
+                    : "border border-cyan-400/20 hover:border-cyan-400/40")
                 }
+                style={activeTab === "reports" ? {} : { color: "var(--text-secondary)" }}
               >
                 Reports
               </button>
@@ -370,12 +375,16 @@ export default function AdminPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search events…"
-                  className="h-8 w-[220px] rounded-md border border-cyan-400/30 bg-transparent px-3 text-[11px] outline-none placeholder:text-cyan-200/50 focus:border-cyan-300"
+                  className="h-8 w-[220px] rounded-md border border-cyan-400/30 px-3 text-[11px] outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 transition-all duration-300"
+                  style={{
+                    backgroundColor: "var(--input-bg)",
+                    color: "var(--input-text)",
+                  }}
                 />
               </div>
               <button
                 onClick={openCreate}
-                className="h-8 rounded-md bg-teal-500/90 px-3 text-[11px] font-semibold text-black transition hover:bg-teal-400"
+                className="h-8 rounded-md bg-teal-500/90 px-3 text-[11px] font-semibold text-black transition hover:bg-teal-400 cursor-pointer"
               >
                 + Create Event
               </button>
@@ -387,7 +396,11 @@ export default function AdminPage() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Search members…"
-                    className="h-8 w-[220px] rounded-md border border-cyan-400/30 bg-transparent px-3 text-[11px] outline-none placeholder:text-cyan-200/50 focus:border-cyan-300"
+                    className="h-8 w-[220px] rounded-md border border-cyan-400/30 px-3 text-[11px] outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 transition-all duration-300"
+                    style={{
+                      backgroundColor: "var(--input-bg)",
+                      color: "var(--input-text)",
+                    }}
                   />
                 </div>
                 <button
@@ -399,7 +412,8 @@ export default function AdminPage() {
                       ...prev,
                     ]);
                   }}
-                  className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] text-cyan-100/90 transition hover:border-cyan-300/60"
+                  className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] transition hover:border-cyan-300/60 cursor-pointer"
+                  style={{ color: "var(--text-secondary)" }}
                 >
                   + Add Dummy Applicant
                 </button>
@@ -418,37 +432,37 @@ export default function AdminPage() {
 
         {activeTab === "events" ? (
           <>
-            <h2 className="mt-6 text-sm text-cyan-100/80">Manage Events</h2>
+            <h2 className="mt-6 text-sm transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Manage Events</h2>
             <div className="mt-3 space-y-4">
               {filtered.map((ev, idx) => (
                 <div
                   key={ev.id}
-                  className="rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-4 shadow-[0_0_0_1px_rgba(34,211,238,0.08)_inset] neon-panel transition-all duration-300 hover:scale-[1.01] animate-fade-in"
-                  style={{ animationDelay: `${idx * 0.05}s` }}
+                  className="rounded-xl border border-cyan-400/25 p-4 shadow-[0_0_0_1px_rgba(34,211,238,0.08)_inset] neon-panel transition-all duration-300 hover:scale-[1.01] animate-slide-up"
+                  style={{ background: "var(--card-bg)", animationDelay: `${idx * 0.05}s` }}
                 >
                   <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="grid w-full grid-cols-2 gap-x-10 gap-y-1 md:grid-cols-4">
                       <div>
-                        <div className="text-[11px] text-cyan-200/70">Title</div>
-                        <div className="orbitron text-sm">{ev.title}</div>
+                        <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Title</div>
+                        <div className="orbitron text-sm text-cyan-400">{ev.title}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-cyan-200/70">Date</div>
-                        <div className="text-sm">{ev.date}</div>
+                        <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Date</div>
+                        <div className="text-sm transition-colors duration-300" style={{ color: "var(--text-primary)" }}>{ev.date}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-cyan-200/70">Location</div>
-                        <div className="text-sm">{ev.location}</div>
+                        <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Location</div>
+                        <div className="text-sm transition-colors duration-300" style={{ color: "var(--text-primary)" }}>{ev.location}</div>
                       </div>
                       <div>
-                        <div className="text-[11px] text-cyan-200/70">Attendees</div>
+                        <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Attendees</div>
                         <div className="text-sm text-emerald-400">{ev.attendees}</div>
                       </div>
                       <div className="md:col-span-4">
-                        <div className="text-[11px] text-cyan-200/70">Badge</div>
-                        <div className="text-sm">{ev.badgeEmoji ? `${ev.badgeEmoji} ${ev.title}` : "—"}</div>
+                        <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Badge</div>
+                        <div className="text-sm transition-colors duration-300" style={{ color: "var(--text-primary)" }}>{ev.badgeEmoji ? `${ev.badgeEmoji} ${ev.title}` : "—"}</div>
                         {ev.details ? (
-                          <div className="mt-1 text-[12px] text-cyan-200/80 line-clamp-2">{ev.details}</div>
+                          <div className="mt-1 text-[12px] line-clamp-2 transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{ev.details}</div>
                         ) : null}
                       </div>
                     </div>
@@ -456,7 +470,8 @@ export default function AdminPage() {
                       <button
                         title="Edit"
                         onClick={() => openEdit(ev.id)}
-                        className="grid h-9 w-9 place-content-center rounded-md border border-cyan-400/30 bg-black/30 text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-110 active:scale-95"
+                        className="cursor-pointer grid h-9 w-9 place-content-center rounded-md border border-cyan-400/30 transition-all duration-200 hover:border-cyan-300/60 hover:scale-110 active:scale-95"
+                        style={{ background: "var(--input-bg)", color: "var(--text-primary)" }}
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
                           <path d="M16.862 3.487a1.5 1.5 0 0 1 2.121 2.121L8.25 16.34 4.5 17.25l.91-3.75L16.862 3.487Z" />
@@ -465,7 +480,7 @@ export default function AdminPage() {
                       <button
                         title="Delete"
                         onClick={() => confirmDelete(ev.id)}
-                        className="grid h-9 w-9 place-content-center rounded-md border border-red-400/40 bg-black/30 text-red-300 transition-all duration-200 hover:border-red-300/70 hover:scale-110 active:scale-95"
+                        className="cursor-pointer grid h-9 w-9 place-content-center rounded-md border border-red-400/40 bg-red-950/40 text-red-300 transition-all duration-200 hover:border-red-300/70 hover:scale-110 active:scale-95"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
                           <path d="M6 7h12M9 7v10m6-10v10M4 7h16l-1 13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 7Zm4-3h8l1 3H7l1-3Z" />
@@ -479,18 +494,22 @@ export default function AdminPage() {
           </>
         ) : activeTab === "members" ? (
           <>
-            <h2 className="mt-6 orbitron text-lg">Approved Members</h2>
+            <h2 className="mt-6 orbitron text-lg text-cyan-400">Approved Members</h2>
             <div className="mt-3 space-y-4">
               {registrations
                 .filter((r) =>
                   query ? r.name.toLowerCase().includes(query.toLowerCase()) || r.email.toLowerCase().includes(query.toLowerCase()) : true
                 )
-                .map((r) => (
-                  <div key={r.id} className="rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-4 neon-panel">
+                .map((r, idx) => (
+                  <div 
+                    key={r.id} 
+                    className="rounded-xl border border-cyan-400/25 p-4 neon-panel animate-slide-up transition-all duration-300 hover:scale-[1.01]"
+                    style={{ background: "var(--card-bg)", animationDelay: `${idx * 0.05}s` }}
+                  >
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <div className="orbitron text-[15px] text-cyan-100">{r.name}</div>
-                        <div className="text-[11px] text-cyan-200/70">{r.email}</div>
+                        <div className="orbitron text-[15px] transition-colors duration-300" style={{ color: "var(--text-primary)" }}>{r.name}</div>
+                        <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{r.email}</div>
                         <div className="mt-1 inline-flex items-center rounded-full px-2 py-[2px] text-[10px]"
                           style={{
                             backgroundColor: r.status === "approved" ? "rgb(5 150 105 / 0.2)" : "rgb(234 179 8 / 0.15)",
@@ -504,12 +523,12 @@ export default function AdminPage() {
                       {r.status === "pending" ? (
                         <button
                           onClick={() => setRegistrations((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "approved" } : x)))}
-                          className="h-9 rounded-md bg-emerald-500 px-4 text-sm font-semibold text-black transition hover:bg-emerald-400"
+                          className="cursor-pointer h-9 rounded-md bg-emerald-500 px-4 text-sm font-semibold text-black transition-all duration-200 hover:bg-emerald-400 active:scale-95"
                         >
                           Approve
                         </button>
                       ) : (
-                        <div className="text-[11px] text-cyan-200/70">Already approved</div>
+                        <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Already approved</div>
                       )}
                     </div>
                   </div>
@@ -518,24 +537,24 @@ export default function AdminPage() {
           </>
         ) : activeTab === "census" ? (
           <>
-            <h2 className="mt-6 orbitron text-lg">Attendance Census</h2>
+            <h2 className="mt-6 orbitron text-lg text-cyan-400">Attendance Census</h2>
             <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div className="rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-5 neon-panel">
-                <div className="text-[11px] text-cyan-200/70">Total Members</div>
+              <div className="rounded-xl border border-cyan-400/25 p-5 neon-panel animate-slide-up transition-all duration-300" style={{ background: "var(--card-bg)", animationDelay: "0s" }}>
+                <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Total Members</div>
                 <div className="mt-2 text-2xl text-cyan-300">{totalMembers}</div>
               </div>
-              <div className="rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-5 neon-panel">
-                <div className="text-[11px] text-cyan-200/70">Total Events</div>
+              <div className="rounded-xl border border-cyan-400/25 p-5 neon-panel animate-slide-up transition-all duration-300" style={{ background: "var(--card-bg)", animationDelay: "0.05s" }}>
+                <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Total Events</div>
                 <div className="mt-2 text-2xl text-cyan-300">{totalEvents}</div>
               </div>
-              <div className="rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-5 neon-panel">
-                <div className="text-[11px] text-cyan-200/70">Total Attendance</div>
+              <div className="rounded-xl border border-cyan-400/25 p-5 neon-panel animate-slide-up transition-all duration-300" style={{ background: "var(--card-bg)", animationDelay: "0.1s" }}>
+                <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Total Attendance</div>
                 <div className="mt-2 text-2xl text-cyan-300">{totalAttendance}</div>
               </div>
             </div>
 
-            <div className="mt-6 rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-4 neon-panel">
-              <div className="orbitron text-sm">Event Attendance Summary</div>
+            <div className="mt-6 rounded-xl border border-cyan-400/25 p-4 neon-panel animate-slide-up transition-all duration-300" style={{ background: "var(--card-bg)", animationDelay: "0.15s" }}>
+              <div className="orbitron text-sm text-cyan-400">Event Attendance Summary</div>
               <div className="mt-3 space-y-3">
                 {events.map((ev) => {
                   const count = attendeesFor(ev.id).length;
@@ -543,15 +562,16 @@ export default function AdminPage() {
                     <button
                       key={ev.id}
                       onClick={() => setOpenAttendeesFor(ev.id)}
-                      className="group flex w-full items-center justify-between rounded-lg border border-cyan-400/20 bg-[#06121a]/80 px-4 py-3 text-left transition hover:border-cyan-300/50 hover:bg-[#06131c]"
+                      className="cursor-pointer group flex w-full items-center justify-between rounded-lg border border-cyan-400/20 px-4 py-3 text-left transition-all duration-200 hover:border-cyan-400/30 hover:scale-[1.005] active:scale-[0.98]"
+                      style={{ background: "var(--input-bg)" }}
                     >
                       <div>
-                        <div className="orbitron text-[13px] text-cyan-100">{ev.title}</div>
-                        <div className="text-[10px] text-cyan-200/70">{ev.date}</div>
+                        <div className="orbitron text-[13px] transition-colors duration-300" style={{ color: "var(--text-primary)" }}>{ev.title}</div>
+                        <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{ev.date}</div>
                       </div>
                       <div className="text-right">
                         <div className="text-[13px] text-cyan-300">{count}</div>
-                        <div className="text-[10px] text-cyan-200/70">Attendees</div>
+                        <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Attendees</div>
                       </div>
                     </button>
                   );
@@ -561,9 +581,13 @@ export default function AdminPage() {
           </>
         ) : (
           <>
-            <h2 className="mt-6 orbitron text-lg">Reports</h2>
+            <h2 className="mt-6 orbitron text-lg text-cyan-400">Reports</h2>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <button onClick={() => setOpenReport("attendance")} className="rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-5 neon-panel text-left transition hover:border-cyan-300/50">
+              <button 
+                onClick={() => setOpenReport("attendance")} 
+                className="cursor-pointer rounded-xl border border-cyan-400/25 p-5 neon-panel text-left transition-all duration-300 hover:border-cyan-300/50 hover:scale-[1.02] active:scale-95 animate-slide-up"
+                style={{ background: "var(--card-bg)", animationDelay: "0s" }}
+              >
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 text-cyan-300">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
@@ -572,12 +596,16 @@ export default function AdminPage() {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="orbitron text-[15px]">Attendance Report</div>
-                    <div className="text-[12px] text-cyan-200/70">View detailed attendance statistics and trends</div>
+                    <div className="orbitron text-[15px] transition-colors duration-300" style={{ color: "var(--text-primary)" }}>Attendance Report</div>
+                    <div className="text-[12px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>View detailed attendance statistics and trends</div>
                   </div>
                 </div>
               </button>
-              <button onClick={() => setOpenReport("member")} className="rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-5 neon-panel text-left transition hover:border-cyan-300/50">
+              <button 
+                onClick={() => setOpenReport("member")} 
+                className="cursor-pointer rounded-xl border border-cyan-400/25 p-5 neon-panel text-left transition-all duration-300 hover:border-cyan-300/50 hover:scale-[1.02] active:scale-95 animate-slide-up"
+                style={{ background: "var(--card-bg)", animationDelay: "0.05s" }}
+              >
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 text-cyan-300">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
@@ -585,8 +613,8 @@ export default function AdminPage() {
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <div className="orbitron text-[15px]">Member Report</div>
-                    <div className="text-[12px] text-cyan-200/70">Generate member activity and engagement reports</div>
+                    <div className="orbitron text-[15px] transition-colors duration-300" style={{ color: "var(--text-primary)" }}>Member Report</div>
+                    <div className="text-[12px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Generate member activity and engagement reports</div>
                   </div>
                 </div>
               </button>
@@ -623,18 +651,24 @@ export default function AdminPage() {
               placeholder="Room 101"
             />
             <div>
-              <label className="mb-1 block text-xs text-cyan-200/80">Badge Emoji</label>
+              <label className="mb-1 block text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Badge Emoji</label>
               <div className="flex items-center gap-2">
                 <input
                   value={draft.badgeEmoji}
                   onChange={(e) => setDraft((d) => ({ ...d, badgeEmoji: e.target.value }))}
                   placeholder="e.g., 🏅, 🚀, 🤖"
-                  className={`h-10 w-full rounded-md bg-transparent px-3 text-sm outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30 ${errors.badgeEmoji ? "border border-red-500/60" : "border border-cyan-400/40"}`}
+                  className={`h-10 w-full rounded-md px-3 text-sm outline-none focus:ring-2 focus:ring-cyan-400/30 transition-colors duration-300 ${errors.badgeEmoji ? "border border-red-500/60" : "border"}`}
+                  style={{ 
+                    background: "var(--input-bg)", 
+                    color: "var(--input-text)",
+                    borderColor: errors.badgeEmoji ? undefined : "var(--input-border)"
+                  }}
                 />
                 <button
                   type="button"
                   onClick={() => setEmojiOpen((v) => !v)}
-                  className="h-10 shrink-0 rounded-md border border-cyan-400/30 bg-black/30 px-3 text-sm text-cyan-100/90 hover:border-cyan-300/60"
+                  className="cursor-pointer h-10 shrink-0 rounded-md border border-cyan-400/30 px-3 text-sm transition-all duration-200 hover:border-cyan-300/60 active:scale-95"
+                  style={{ background: "var(--input-bg)", color: "var(--text-primary)" }}
                 >
                   {emojiOpen ? "Hide" : "Pick"}
                 </button>
@@ -652,12 +686,17 @@ export default function AdminPage() {
               ) : null}
             </div>
             <div className="md:col-span-2">
-              <label className="mb-1 block text-xs text-cyan-200/80">Event Details (also used as Badge details)</label>
+              <label className="mb-1 block text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Event Details (also used as Badge details)</label>
               <textarea
                 value={draft.details}
                 onChange={(e) => setDraft((d) => ({ ...d, details: e.target.value }))}
                 placeholder="Describe the event: agenda, venue, speakers, etc."
-                className={`min-h-[88px] w-full rounded-md bg-transparent p-3 text-sm outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30 ${errors.details ? "border border-red-500/60" : "border border-cyan-400/40"}`}
+                className={`min-h-[88px] w-full rounded-md p-3 text-sm outline-none focus:ring-2 focus:ring-cyan-400/30 transition-colors duration-300 ${errors.details ? "border border-red-500/60" : "border"}`}
+                style={{ 
+                  background: "var(--input-bg)", 
+                  color: "var(--input-text)",
+                  borderColor: errors.details ? undefined : "var(--input-border)"
+                }}
               />
               {errors.details ? (
                 <div className="mt-1 text-[11px] text-red-300">{errors.details}</div>
@@ -675,11 +714,12 @@ export default function AdminPage() {
           <div className="mt-5 flex items-center justify-end gap-2">
             <button
               onClick={() => setOpenForm(false)}
-              className="h-10 rounded-md border border-cyan-400/40 px-4 text-sm text-cyan-100/90 transition hover:border-cyan-300/60"
+              className="cursor-pointer h-10 rounded-md border border-cyan-400/40 px-4 text-sm transition-all duration-200 hover:border-cyan-300/60 active:scale-95"
+              style={{ color: "var(--text-primary)" }}
             >
               Cancel
             </button>
-            <Button className="w-auto" onClick={submitDraft}>
+            <Button className="w-auto cursor-pointer" onClick={submitDraft}>
               {editingId == null ? "Create" : "Save Changes"}
             </Button>
           </div>
@@ -687,19 +727,20 @@ export default function AdminPage() {
 
         {/* Delete confirm */}
         <Modal open={openDeleteId != null} onClose={() => setOpenDeleteId(null)} title="Delete Event">
-          <p className="text-sm text-cyan-100/80">
+          <p className="text-sm transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
             Are you sure you want to delete this event? This action cannot be undone.
           </p>
           <div className="mt-5 flex items-center justify-end gap-2">
             <button
               onClick={() => setOpenDeleteId(null)}
-              className="h-10 rounded-md border border-cyan-400/40 px-4 text-sm text-cyan-100/90 transition hover:border-cyan-300/60"
+              className="cursor-pointer h-10 rounded-md border border-cyan-400/40 px-4 text-sm transition-all duration-200 hover:border-cyan-300/60 active:scale-95"
+              style={{ color: "var(--text-primary)" }}
             >
               Cancel
             </button>
             <button
               onClick={doDelete}
-              className="h-10 rounded-md border border-red-400/60 bg-red-500/20 px-4 text-sm text-red-200 transition hover:bg-red-500/30"
+              className="cursor-pointer h-10 rounded-md border border-red-400/60 bg-red-950/40 px-4 text-sm text-red-200 transition-all duration-200 hover:bg-red-500/30 active:scale-95"
             >
               Delete
             </button>
@@ -710,13 +751,13 @@ export default function AdminPage() {
       {/* Attendees modal */}
       <Modal open={openAttendeesFor != null} onClose={() => setOpenAttendeesFor(null)} title="Event Attendees">
         {openAttendeesFor != null ? (
-          <div className="max-h-[60vh] overflow-auto rounded-lg border border-cyan-400/15 bg-black/30 p-3">
+          <div className="max-h-[60vh] overflow-auto rounded-lg border border-cyan-400/15 p-3 transition-colors duration-300" style={{ background: "var(--input-bg)" }}>
             <ul className="space-y-2 text-sm">
               {attendeesFor(openAttendeesFor).map((m) => (
-                <li key={m.id} className="flex items-center justify-between rounded-md border border-cyan-400/10 bg-black/30 px-3 py-2">
+                <li key={m.id} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-colors duration-300" style={{ background: "var(--card-bg)" }}>
                   <div>
-                    <div className="text-cyan-100">{m.name}</div>
-                    <div className="text-[10px] text-cyan-200/70">{m.id}</div>
+                    <div className="text-cyan-400">{m.name}</div>
+                    <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{m.id}</div>
                   </div>
                   <div className="text-[12px] text-cyan-300">{m.chapter ?? "—"}</div>
                 </li>
@@ -732,14 +773,15 @@ export default function AdminPage() {
           <div className="space-y-4">
             <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <div className="flex items-center gap-2">
-                <label className="text-[12px] text-cyan-200/80">Event</label>
+                <label className="text-[12px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Event</label>
                 <select
                   value={reportEventId ?? ""}
                   onChange={(e) => setReportEventId(e.target.value ? Number(e.target.value) : null)}
-                  className="h-9 rounded-md border border-cyan-400/30 bg-transparent px-2 text-sm outline-none focus:border-cyan-300"
+                  className="cursor-pointer h-9 rounded-md border border-cyan-400/30 px-2 text-sm outline-none focus:border-cyan-300 transition-colors duration-300 [&>option]:bg-black dark:[&>option]:bg-black [&>option]:text-cyan-100"
+                  style={{ background: "var(--input-bg)", color: "var(--input-text)" }}
                 >
                   {events.map((e) => (
-                    <option key={e.id} value={e.id} className="bg-[#0b0f13]">
+                    <option key={e.id} value={e.id}>
                       {e.title}
                     </option>
                   ))}
@@ -750,7 +792,8 @@ export default function AdminPage() {
                   value={attendeeQuery}
                   onChange={(e) => setAttendeeQuery(e.target.value)}
                   placeholder="Search attendee…"
-                  className="h-9 w-[220px] rounded-md border border-cyan-400/30 bg-transparent px-3 text-sm outline-none placeholder:text-cyan-200/50 focus:border-cyan-300"
+                  className="h-9 w-[220px] rounded-md border px-3 text-sm outline-none focus:border-cyan-300 transition-colors duration-300"
+                  style={{ background: "var(--input-bg)", color: "var(--input-text)", borderColor: "var(--input-border)" }}
                 />
                 <button
                   onClick={() => {
@@ -765,7 +808,8 @@ export default function AdminPage() {
                     }));
                     if (rows.length > 0) downloadCSV(`attendance-${ev.id}.csv`, rows);
                   }}
-                  className="h-9 rounded-md border border-cyan-400/40 px-3 text-sm text-cyan-100/90 transition hover:border-cyan-300/60"
+                  className="cursor-pointer h-9 rounded-md border border-cyan-400/40 px-3 text-sm transition-all duration-200 hover:border-cyan-300/60 active:scale-95"
+                  style={{ color: "var(--text-primary)" }}
                 >
                   Export CSV
                 </button>
@@ -773,7 +817,7 @@ export default function AdminPage() {
             </div>
 
             {reportEventId != null ? (
-              <div className="max-h-[50vh] overflow-auto rounded-lg border border-cyan-400/15 bg-black/30 p-3">
+              <div className="max-h-[50vh] overflow-auto rounded-lg border border-cyan-400/15 p-3 transition-colors duration-300" style={{ background: "var(--input-bg)" }}>
                 <ul className="space-y-2 text-sm">
                   {attendeesFor(reportEventId)
                     .filter((m) =>
@@ -783,10 +827,10 @@ export default function AdminPage() {
                         : true
                     )
                     .map((m) => (
-                      <li key={m.id} className="flex items-center justify-between rounded-md border border-cyan-400/10 bg-black/30 px-3 py-2">
+                      <li key={m.id} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-colors duration-300" style={{ background: "var(--card-bg)" }}>
                         <div>
-                          <div className="text-cyan-100">{m.name}</div>
-                          <div className="text-[10px] text-cyan-200/70">{m.id}</div>
+                          <div className="text-cyan-400">{m.name}</div>
+                          <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{m.id}</div>
                         </div>
                         <div className="text-[12px] text-cyan-300">{m.chapter ?? "—"}</div>
                       </li>
@@ -803,14 +847,15 @@ export default function AdminPage() {
         {openReport === "member" ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <label className="text-[12px] text-cyan-200/80">Chapter</label>
+              <label className="text-[12px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Chapter</label>
               <select
                 value={chapterFilter}
                 onChange={(e) => setChapterFilter(e.target.value)}
-                className="h-9 rounded-md border border-cyan-400/30 bg-transparent px-2 text-sm outline-none focus:border-cyan-300"
+                className="cursor-pointer h-9 rounded-md border border-cyan-400/30 px-2 text-sm outline-none focus:border-cyan-300 transition-colors duration-300 [&>option]:bg-black dark:[&>option]:bg-black [&>option]:text-cyan-100"
+                style={{ background: "var(--input-bg)", color: "var(--input-text)" }}
               >
                 {chapters.map((c) => (
-                  <option key={c} value={c} className="bg-[#0b0f13]">
+                  <option key={c} value={c}>
                     {c === "all" ? "All Chapters" : c}
                   </option>
                 ))}
@@ -822,26 +867,27 @@ export default function AdminPage() {
                     .map((e) => ({ id: e.member.id, name: e.member.name, chapter: e.member.chapter ?? "", events: e.count }));
                   if (rows.length > 0) downloadCSV("member-engagement.csv", rows);
                 }}
-                className="h-9 rounded-md border border-cyan-400/40 px-3 text-sm text-cyan-100/90 transition hover:border-cyan-300/60"
+                className="cursor-pointer h-9 rounded-md border border-cyan-400/40 px-3 text-sm transition-all duration-200 hover:border-cyan-300/60 active:scale-95"
+                style={{ color: "var(--text-primary)" }}
               >
                 Export CSV
               </button>
             </div>
 
-            <div className="max-h-[50vh] overflow-auto rounded-lg border border-cyan-400/15 bg-black/30 p-3">
+            <div className="max-h-[50vh] overflow-auto rounded-lg border border-cyan-400/15 p-3 transition-colors duration-300" style={{ background: "var(--input-bg)" }}>
               <ul className="space-y-2 text-sm">
                 {engagement
                   .filter((e) => (chapterFilter === "all" ? true : (e.member.chapter ?? "") === chapterFilter))
                   .slice(0, 100)
                   .map((e) => (
-                    <li key={e.member.id} className="flex items-center justify-between rounded-md border border-cyan-400/10 bg-black/30 px-3 py-2">
+                    <li key={e.member.id} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-colors duration-300" style={{ background: "var(--card-bg)" }}>
                       <div className="min-w-0">
-                        <div className="truncate text-cyan-100">{e.member.name}</div>
-                        <div className="text-[10px] text-cyan-200/70">{e.member.id}</div>
+                        <div className="truncate text-cyan-400">{e.member.name}</div>
+                        <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{e.member.id}</div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-[12px] text-cyan-300">{e.member.chapter ?? "—"}</div>
-                        <div className="min-w-[60px] rounded-md bg-cyan-400/10 px-2 py-1 text-center text-[12px] text-cyan-200">
+                        <div className="min-w-[60px] rounded-md bg-cyan-400/10 px-2 py-1 text-center text-[12px] font-medium text-cyan-600 dark:text-cyan-200">
                           {e.count} events
                         </div>
                       </div>
