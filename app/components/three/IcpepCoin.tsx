@@ -3,7 +3,7 @@
 import React, { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import type { ThreeElements } from "@react-three/fiber";
-import { Center, Environment, OrbitControls, useGLTF } from "@react-three/drei";
+import { AdaptiveDpr, Center, Environment, OrbitControls, Preload, useGLTF } from "@react-three/drei";
 import type { GLTF } from "three-stdlib";
 import type { Group } from "three";
 
@@ -16,9 +16,20 @@ function CoinModel(props: ThreeElements["group"]) {
 useGLTF.preload("/icpep_coin.glb");
 
 export default function IcpepCoin() {
+  const [auto, setAuto] = React.useState(true);
+  React.useEffect(() => {
+    const onVis = () => setAuto(!document.hidden);
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, []);
+
   return (
     <div className="w-full h-full">
-  <Canvas gl={{ alpha: true, antialias: true }} camera={{ position: [0, 0, 6], fov: 50 }}>
+      <Canvas
+        gl={{ alpha: true, antialias: true, powerPreference: "low-power" }}
+        dpr={[1, 1.5]}
+        camera={{ position: [0, 0, 6], fov: 50 }}
+      >
         {/* Lighting */}
         <ambientLight intensity={0.6} />
         <directionalLight position={[3, 5, 2]} intensity={0.9} />
@@ -32,10 +43,12 @@ export default function IcpepCoin() {
           </Center>
           {/* Subtle image-based lighting */}
           <Environment preset="city" />
+          <Preload all />
+          <AdaptiveDpr pixelated />
         </Suspense>
 
         {/* User interaction: limit to rotate only, with gentle autorotation */}
-        <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.6} />
+        <OrbitControls enablePan={false} enableZoom={false} autoRotate={auto} autoRotateSpeed={0.6} />
       </Canvas>
     </div>
   );
