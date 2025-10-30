@@ -10,6 +10,25 @@ type ModalProps = {
 };
 
 export default function Modal({ open, onClose, title, children }: ModalProps) {
+  const [isVisible, setIsVisible] = React.useState(false);
+  const [shouldRender, setShouldRender] = React.useState(false);
+
+  React.useEffect(() => {
+    if (open) {
+      setShouldRender(true);
+      // Slight delay to trigger animation
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setIsVisible(true);
+        });
+      });
+    } else {
+      setIsVisible(false);
+      const timeout = setTimeout(() => setShouldRender(false), 200);
+      return () => clearTimeout(timeout);
+    }
+  }, [open]);
+
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -19,17 +38,21 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-200 ${
+        isVisible ? "opacity-100" : "opacity-0"
+      }`}
       onClick={onClose}
       aria-modal
       role="dialog"
     >
       <div
-        className="neon-panel w-[min(92vw,680px)] rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/95 p-6 text-cyan-50 shadow-xl"
+        className={`neon-panel w-[min(92vw,680px)] rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/95 p-6 text-cyan-50 shadow-xl transition-all duration-200 ${
+          isVisible ? "scale-100 opacity-100" : "scale-95 opacity-0"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
@@ -40,7 +63,7 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
           )}
           <button
             onClick={onClose}
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-cyan-400/30 text-cyan-200 hover:bg-cyan-400/10"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-cyan-400/30 text-cyan-200 transition-all duration-200 hover:bg-cyan-400/10 hover:scale-110 active:scale-95"
             aria-label="Close"
           >
             ×

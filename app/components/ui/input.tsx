@@ -28,14 +28,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           className={cx(
             "w-full h-10 rounded-md border bg-transparent px-3 text-cyan-100 outline-none",
             "placeholder:text-cyan-200/40",
-            "border-cyan-400/40 focus:border-cyan-400",
-            "transition-colors",
+            "border-cyan-400/40 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/30",
+            "transition-all duration-200",
             className
           )}
           {...props}
         />
         {error ? (
-          <p className="mt-1 text-sm text-rose-300" role="alert">
+          <p className="mt-1 text-sm text-rose-300 animate-fade-in" role="alert">
             {error}
           </p>
         ) : null}

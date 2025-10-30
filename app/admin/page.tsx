@@ -28,6 +28,13 @@ export default function AdminPage() {
   const user = getCurrentUser();
   const isAdmin = user?.role === "admin";
 
+  // Prevent hydration mismatch by ensuring client-only rendering
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Local state for events (CRUD stubs)
   const [events, setEvents] = React.useState<AdminEvent[]>([]);
   const [query, setQuery] = React.useState("");
@@ -264,6 +271,11 @@ export default function AdminPage() {
     setOpenDeleteId(null);
   }
 
+  // Prevent hydration errors
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <div className="relative min-h-dvh isolate overflow-hidden bg-black text-cyan-50">
       {/* soft glows */}
@@ -280,7 +292,7 @@ export default function AdminPage() {
 
       <div className="relative mx-auto max-w-7xl px-6 py-6">
         {/* Top bar */}
-        <div className="rounded-xl border border-cyan-400/15 bg-[#0b0f13]/70 p-4 backdrop-blur-sm">
+        <div className="rounded-xl border border-cyan-400/15 bg-[#0b0f13]/70 p-4 backdrop-blur-sm animate-fade-in">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Image src="/ICpEP.SE Logo.png" alt="logo" width={28} height={28} />
@@ -297,7 +309,7 @@ export default function AdminPage() {
                 } catch {}
                 router.push("/auth/login");
               }}
-              className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] text-cyan-100/90 transition hover:border-cyan-300/60"
+              className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95"
             >
               Log out
             </button>
@@ -408,10 +420,11 @@ export default function AdminPage() {
           <>
             <h2 className="mt-6 text-sm text-cyan-100/80">Manage Events</h2>
             <div className="mt-3 space-y-4">
-              {filtered.map((ev) => (
+              {filtered.map((ev, idx) => (
                 <div
                   key={ev.id}
-                  className="rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-4 shadow-[0_0_0_1px_rgba(34,211,238,0.08)_inset] neon-panel"
+                  className="rounded-xl border border-cyan-400/25 bg-[#071015]/70 p-4 shadow-[0_0_0_1px_rgba(34,211,238,0.08)_inset] neon-panel transition-all duration-300 hover:scale-[1.01] animate-fade-in"
+                  style={{ animationDelay: `${idx * 0.05}s` }}
                 >
                   <div className="flex flex-col items-start gap-4 md:flex-row md:items-center md:justify-between">
                     <div className="grid w-full grid-cols-2 gap-x-10 gap-y-1 md:grid-cols-4">
@@ -443,7 +456,7 @@ export default function AdminPage() {
                       <button
                         title="Edit"
                         onClick={() => openEdit(ev.id)}
-                        className="grid h-9 w-9 place-content-center rounded-md border border-cyan-400/30 bg-black/30 text-cyan-100/90 transition hover:border-cyan-300/60"
+                        className="grid h-9 w-9 place-content-center rounded-md border border-cyan-400/30 bg-black/30 text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-110 active:scale-95"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
                           <path d="M16.862 3.487a1.5 1.5 0 0 1 2.121 2.121L8.25 16.34 4.5 17.25l.91-3.75L16.862 3.487Z" />
@@ -452,7 +465,7 @@ export default function AdminPage() {
                       <button
                         title="Delete"
                         onClick={() => confirmDelete(ev.id)}
-                        className="grid h-9 w-9 place-content-center rounded-md border border-red-400/40 bg-black/30 text-red-300 transition hover:border-red-300/70"
+                        className="grid h-9 w-9 place-content-center rounded-md border border-red-400/40 bg-black/30 text-red-300 transition-all duration-200 hover:border-red-300/70 hover:scale-110 active:scale-95"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
                           <path d="M6 7h12M9 7v10m6-10v10M4 7h16l-1 13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 7Zm4-3h8l1 3H7l1-3Z" />

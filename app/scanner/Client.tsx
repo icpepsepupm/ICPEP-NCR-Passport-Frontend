@@ -253,7 +253,7 @@ export default function ScannerClientPage() {
 
       <div className="relative mx-auto max-w-7xl px-6 py-6">
         {/* Header */}
-        <header className="flex items-center justify-between">
+        <header className="flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
             <Image src="/ICpEP.SE Logo.png" alt="logo" width={28} height={28} />
             <div>
@@ -268,7 +268,7 @@ export default function ScannerClientPage() {
               } catch {}
               router.push("/auth/login");
             }}
-            className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] text-cyan-100/90 transition hover:border-cyan-300/60"
+            className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95"
           >
             Log out
           </button>
@@ -283,21 +283,21 @@ export default function ScannerClientPage() {
         {/* Main grid */}
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-[1fr_340px]">
           {/* Scanner panel */}
-          <div className="rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/90 p-6 neon-panel">
+          <div className="rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/90 p-6 neon-panel animate-slide-up">
             <div className="flex items-center justify-between">
               <h2 className="orbitron text-lg">Scan QR Code</h2>
               <div className="flex items-center gap-3">
                 {stream ? (
                   <button
                     onClick={stopCamera}
-                    className="h-8 rounded-md border border-cyan-400/40 px-2 text-[11px] text-cyan-100/90 transition hover:border-cyan-300/60"
+                    className="h-8 rounded-md border border-cyan-400/40 px-2 text-[11px] text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95"
                   >
                     Disable Camera
                   </button>
                 ) : (
                   <button
                     onClick={requestCamera}
-                    className="h-8 rounded-md bg-cyan-400 px-2 text-[11px] font-semibold text-black orbitron transition-colors hover:bg-cyan-300"
+                    className="h-8 rounded-md bg-cyan-400 px-2 text-[11px] font-semibold text-black orbitron transition-all duration-200 hover:bg-cyan-300 hover:scale-105 active:scale-95"
                     disabled={camState === "requesting"}
                   >
                     {camState === "requesting" ? "Requesting…" : "Enable Camera"}
@@ -356,13 +356,13 @@ export default function ScannerClientPage() {
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button
                 onClick={() => simulateScan("success")}
-                className="h-10 rounded-md bg-cyan-400 text-sm font-semibold text-black orbitron transition-colors hover:bg-cyan-300"
+                className="h-10 rounded-md bg-cyan-400 text-sm font-semibold text-black orbitron transition-all duration-200 hover:bg-cyan-300 hover:scale-105 active:scale-95"
               >
                 Simulate Successful Scan
               </button>
               <button
                 onClick={() => simulateScan("duplicate")}
-                className="h-10 rounded-md border border-cyan-400/40 text-sm text-cyan-100/90 transition hover:border-cyan-300/60"
+                className="h-10 rounded-md border border-cyan-400/40 text-sm text-cyan-100/90 transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95"
               >
                 Simulate Duplicate Scan
               </button>
@@ -391,14 +391,14 @@ export default function ScannerClientPage() {
           </div>
 
           {/* Side panels */}
-          <aside className="space-y-6">
+          <aside className="space-y-6 animate-fade-in stagger-2">
             <div className="rounded-2xl border border-cyan-400/25 bg-[#0b0f13]/90 p-4 neon-panel">
               <div className="orbitron text-sm">Select Event</div>
               <div className="mt-2 flex items-center gap-2">
                 <select
                   value={selected ?? ""}
                   onChange={(e) => setSelected(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="h-10 w-full rounded-md border border-cyan-400/40 bg-transparent px-3 text-sm outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30"
+                  className="h-10 w-full rounded-md border border-cyan-400/40 bg-transparent px-3 text-sm outline-none transition-all duration-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30"
                 >
                   <option value="" className="bg-[#0b0f13]">Choose an event</option>
                   {events.map((ev) => (
@@ -414,7 +414,7 @@ export default function ScannerClientPage() {
                   value={memberInput}
                   onChange={(e) => setMemberInput(e.target.value)}
                   placeholder="e.g. IC-2025-0001"
-                  className="h-10 w-full rounded-md border border-cyan-400/40 bg-transparent px-3 text-sm outline-none placeholder:text-cyan-200/50 focus:border-cyan-300"
+                  className="h-10 w-full rounded-md border border-cyan-400/40 bg-transparent px-3 text-sm outline-none placeholder:text-cyan-200/50 transition-all duration-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30"
                 />
                 <p className="mt-1 text-[11px] text-cyan-200/60">Used by the simulate buttons when testing.</p>
               </div>

@@ -12,9 +12,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       "h-10 w-full rounded-md px-4",
       "orbitron font-semibold tracking-wide",
       "bg-cyan-400 text-black",
-      "hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400",
-      "disabled:opacity-60 disabled:cursor-not-allowed",
-      "transition-colors",
+      "hover:bg-cyan-300 hover:scale-[1.02] active:scale-[0.98]",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400",
+      "disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100",
+      "transition-all duration-200",
       className,
     ]
       .filter(Boolean)
@@ -22,7 +23,14 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <button ref={ref} className={classes} disabled={disabled || loading} {...props}>
-        {loading ? "Loading…" : children}
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />
+            Loading…
+          </span>
+        ) : (
+          children
+        )}
       </button>
     );
   }
