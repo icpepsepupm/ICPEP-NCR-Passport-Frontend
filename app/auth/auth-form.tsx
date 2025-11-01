@@ -14,6 +14,18 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
 
+  function splitName(full: string): { firstName: string; lastName: string; middleName?: string } {
+    const name = (full || "").trim();
+    if (!name) return { firstName: "", lastName: "" };
+    const parts = name.split(/\s+/);
+    if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+    if (parts.length === 2) return { firstName: parts[0], lastName: parts[1] };
+    const lastName = parts.pop() as string;
+    const firstName = parts.shift() as string;
+    const middleName = parts.join(" ") || undefined;
+    return { firstName, middleName, lastName };
+  }
+
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -30,14 +42,18 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
       }
       setLoading(true);
       // store session in localStorage for demo purposes
+      const parsed = splitName(match.name);
       localStorage.setItem(
         "icpep-user",
         JSON.stringify({
-          name: match.name,
+          firstName: parsed.firstName,
+          middleName: parsed.middleName,
+          lastName: parsed.lastName,
+          name: match.name, // keep legacy for compatibility
           email: match.email,
           memberId: match.memberId,
-            school: match.school,
-            role: (match as { role?: "member" | "scanner" | "admin" }).role ?? "member",
+          school: match.school,
+          role: (match as { role?: "member" | "scanner" | "admin" }).role ?? "member",
         })
       );
         const role = (match as { role?: "member" | "scanner" | "admin" }).role ?? "member";
@@ -47,18 +63,21 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
       // Signup: create a pending registration and redirect to waiting page
       setLoading(true);
       const fd = new FormData(e.currentTarget);
-      const name = String(fd.get("name") || "").trim();
+  const firstName = String(fd.get("firstName") || "").trim();
+  const middleName = String(fd.get("middleName") || "").trim();
+  const lastName = String(fd.get("lastName") || "").trim();
       const email = String(fd.get("email") || "").trim();
       const school = String(fd.get("school") || "").trim();
 
       try {
         const key = "icpep-registrations";
         const raw = localStorage.getItem(key);
-        type Registration = { id: number; name: string; email: string; chapter?: string; status: "pending" | "approved" };
+        type Registration = { id: number; name: string; firstName?: string; middleName?: string; lastName?: string; email: string; chapter?: string; status: "pending" | "approved" };
         const current: Registration[] = raw ? (JSON.parse(raw) as Registration[]) : (registrationsSeed as Registration[]);
         const nextId = Math.max(0, ...current.map((r) => r.id)) + 1;
+        const fullName = [firstName, middleName, lastName].filter(Boolean).join(" ");
         const next = [
-          { id: nextId, name, email, chapter: school || undefined, status: "pending" as const },
+          { id: nextId, name: fullName, firstName, middleName: middleName || undefined, lastName, email, chapter: school || undefined, status: "pending" as const },
           ...current,
         ];
         localStorage.setItem(key, JSON.stringify(next));
@@ -75,13 +94,11 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
     <>
       <form onSubmit={onSubmit} className="space-y-4">
         {isLogin ? null : (
-          <Input
-            type="text"
-            name="name"
-            label="Name"
-            autoComplete="name"
-            required
-          />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Input type="text" name="firstName" label="First name" autoComplete="given-name" required />
+            <Input type="text" name="middleName" label="Middle name" autoComplete="additional-name" />
+            <Input type="text" name="lastName" label="Last name" autoComplete="family-name" required />
+          </div>
         )}
 
         <Input type="email" name="email" label="Email" autoComplete="email" required />

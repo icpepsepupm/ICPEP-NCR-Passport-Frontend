@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useRouter, useParams } from "next/navigation";
 import { getCurrentUser, clearCurrentUser } from "@/app/lib/client-auth";
+import { getDisplayName } from "@/app/lib/client-auth";
 import { QRCodeSVG } from "qrcode.react";
 import Link from "next/link";
 import IcpepCoin from "@/app/components/three/IcpepCoin";
@@ -118,7 +119,7 @@ export default function PassportPage() {
           <div className="space-y-5 text-center">
             <div className="animate-fade-in stagger-3">
               <div className="orbitron text-xl text-cyan-400">Name</div>
-              <div className="text-base transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{user.name}</div>
+                <div className="text-base transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{getDisplayName(user)}</div>
             </div>
             <div className="animate-fade-in stagger-4">
               <div className="orbitron text-xl text-cyan-400">School</div>
