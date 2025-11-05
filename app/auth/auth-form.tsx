@@ -145,7 +145,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
       <p className="mt-4 text-center text-sm transition-colors duration-300" style={{ color: "var(--text-muted)" }}>
         {isLogin ? "Don't have an account? " : "Already have an account? "}
         <Link
-          className="text-cyan-500 dark:text-cyan-300 underline-offset-4 hover:underline transition-colors duration-300"
+          className="text-cyan-700 dark:text-cyan-300 underline-offset-4 hover:underline transition-colors duration-300"
           href={isLogin ? "/auth/signup" : "/auth/login"}
         >
           {isLogin ? "Sign up" : "Log in"}
