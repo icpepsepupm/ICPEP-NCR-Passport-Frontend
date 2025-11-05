@@ -17,9 +17,9 @@
   --background: #f0f9ff;
   --foreground: #0c4a6e;
   --card-bg: rgba(255, 255, 255, 0.95);
-  --text-primary: #0e7490;
-  --text-secondary: rgba(14, 116, 144, 0.8);
-  --text-muted: rgba(14, 116, 144, 0.6);
+  --text-primary: #06b6d4;
+  --text-secondary: #0891b2;
+  --text-muted: #0e7490;
   --input-bg: rgba(240, 249, 255, 0.5);
   --input-border: rgba(34, 211, 238, 0.5);
   --input-text: #0c4a6e;
@@ -61,6 +61,12 @@ textarea::placeholder {
   animation: neon-pulse 3s ease-in-out infinite;
 }
 
+/* Light mode neon glow - darker and more visible */
+:root.light .neon-panel {
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.4),
+    0 0 24px rgba(6, 182, 212, 0.3), 0 0 48px rgba(6, 182, 212, 0.15);
+}
+
 @keyframes neon-pulse {
   0%, 100% {
     box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.25),
@@ -69,6 +75,22 @@ textarea::placeholder {
   50% {
     box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.35),
       0 0 28px rgba(34, 211, 238, 0.25), 0 0 56px rgba(34, 211, 238, 0.15);
+  }
+}
+
+/* Light mode neon pulse animation */
+:root.light .neon-panel {
+  animation: neon-pulse-light 3s ease-in-out infinite;
+}
+
+@keyframes neon-pulse-light {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.4),
+      0 0 24px rgba(6, 182, 212, 0.3), 0 0 48px rgba(6, 182, 212, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.5),
+      0 0 28px rgba(6, 182, 212, 0.35), 0 0 56px rgba(6, 182, 212, 0.2);
   }
 }
 
