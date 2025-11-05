@@ -12,7 +12,7 @@ export default function AuthCard({
 }) {
   return (
     <div 
-      className="relative mx-auto w-[420px] max-w-[92vw] rounded-2xl border border-cyan-400/25 p-8 neon-panel backdrop-blur animate-scale-in transition-all duration-300" 
+      className="relative mx-auto w-[420px] max-w-[92vw] rounded-2xl border border-cyan-500/60 dark:border-cyan-400/25 p-8 neon-panel backdrop-blur animate-scale-in transition-all duration-300" 
       style={{ background: "var(--card-bg)" }}
     >
       <div className="flex flex-col items-center gap-4">
@@ -25,7 +25,7 @@ export default function AuthCard({
           className="drop-shadow-[0_0_20px_rgba(34,211,238,0.35)] animate-fade-in stagger-1"
         />
         <h1 
-          className="orbitron text-3xl font-semibold tracking-wider animate-fade-in stagger-2 text-cyan-400"
+          className="orbitron text-3xl font-semibold tracking-wider animate-fade-in stagger-2 text-cyan-500 dark:text-cyan-400"
         >
           {title}
         </h1>
