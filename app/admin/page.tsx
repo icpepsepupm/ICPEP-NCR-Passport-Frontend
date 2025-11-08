@@ -4,10 +4,18 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getCurrentUser } from "@/app/lib/client-auth";
+import {
+  userAPI,
+  memberAPI,
+  authAPI,
+  type User,
+  type Member,
+  type UserRequest,
+  type UserResponse
+} from "@/app/lib/api";
+// Keep dummy data for events for now
 import eventsData from "@/app/data/events.json";
-import membersData from "@/app/data/members.json";
 import attendanceData from "@/app/data/attendance.json";
-import registrationsSeed from "@/app/data/registrations.json";
 import Modal from "@/app/components/ui/modal";
 import { Input } from "@/app/components/ui/input";
 import { Button } from "@/app/components/ui/button";
@@ -35,8 +43,13 @@ export default function AdminPage() {
     setMounted(true);
   }, []);
 
-  // Local state for events (CRUD stubs)
+  // Local state for events (keep using dummy data for now)
   const [events, setEvents] = React.useState<AdminEvent[]>([]);
+  const [users, setUsers] = React.useState<UserResponse[]>([]);
+  const [members, setMembers] = React.useState<Member[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [backendAvailable, setBackendAvailable] = React.useState<boolean | null>(null);
   const [query, setQuery] = React.useState("");
 
   // Create/Edit modal state
@@ -48,62 +61,97 @@ export default function AdminPage() {
   const [emojiOpen, setEmojiOpen] = React.useState(false);
   // No external badge catalog; admin defines an emoji and details per event.
   const [openDeleteId, setOpenDeleteId] = React.useState<number | null>(null);
-  const [activeTab, setActiveTab] = React.useState<"events" | "members" | "census" | "reports">("events");
+  const [activeTab, setActiveTab] = React.useState<"events" | "members" | "approvals" | "census" | "reports">("events");
   const [openAttendeesFor, setOpenAttendeesFor] = React.useState<number | null>(null);
   const [openReport, setOpenReport] = React.useState<null | "attendance" | "member">(null);
   const [reportEventId, setReportEventId] = React.useState<number | null>(null);
   const [attendeeQuery, setAttendeeQuery] = React.useState("");
   const [chapterFilter, setChapterFilter] = React.useState("all");
 
-  const storageKey = "icpep-events";
-  const regStorageKey = "icpep-registrations";
+  // User edit modal state
+  const [editingUserId, setEditingUserId] = React.useState<number | null>(null);
+  const [openUserForm, setOpenUserForm] = React.useState(false);
+  const [userDraft, setUserDraft] = React.useState<UserRequest>({
+    firstName: "",
+    lastName: "",
+    age: 18,
+    username: "",
+    password: "",
+    role: "MEMBER",
+    memberId: "",
+    schoolId: undefined
+  });
+  const [userErrors, setUserErrors] = React.useState<Record<string, string>>({});
+  const [deleteUserId, setDeleteUserId] = React.useState<number | null>(null);
 
-  // Load from localStorage or fallback to bundled JSON
+  // Load users and members from backend, keep events as dummy data for now
   React.useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
-      if (raw) {
-        const parsed = JSON.parse(raw) as AdminEvent[];
-        setEvents(parsed);
-        return;
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Try to load users from backend
+        try {
+          const usersData = await userAPI.getAllUsers();
+          setUsers(usersData);
+          setBackendAvailable(true);
+
+          // Filter members from users (users with role "MEMBER")
+          const membersFromUsers = usersData.filter(user => user.role === 'MEMBER') as Member[];
+          setMembers(membersFromUsers);
+        } catch (apiErr) {
+          console.warn('Backend API not available, using fallback data:', apiErr);
+          setBackendAvailable(false);
+
+          // Fallback to empty data with a warning
+          setUsers([]);
+          setMembers([]);
+          setError('Backend server not available. Using offline mode. Start your Spring Boot server to enable full functionality.');
+        }
+
+        // Load events from dummy data for now
+        setEvents(eventsData as AdminEvent[]);
+      } catch (err) {
+        console.error('Failed to load data:', err);
+        setError('Failed to initialize admin dashboard. Please refresh the page.');
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      // ignore
-    }
-    setEvents(eventsData as AdminEvent[]);
+    };
+
+    loadData();
   }, []);
 
-  // Registrations state (members approval)
-  type Registration = { id: number; name: string; email: string; chapter?: string; status: "pending" | "approved" };
-  const [registrations, setRegistrations] = React.useState<Registration[]>([]);
-  React.useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? window.localStorage.getItem(regStorageKey) : null;
-      if (raw) {
-        setRegistrations(JSON.parse(raw) as Registration[]);
-        return;
-      }
-    } catch {}
-    setRegistrations(registrationsSeed as Registration[]);
-  }, []);
-  React.useEffect(() => {
-    try {
-      if (registrations.length > 0) {
-        window.localStorage.setItem(regStorageKey, JSON.stringify(registrations));
-      }
-    } catch {}
-  }, [registrations]);
-
-  // Persist to localStorage
-  React.useEffect(() => {
-    try {
-      if (events.length > 0) {
-        window.localStorage.setItem(storageKey, JSON.stringify(events));
-      }
-    } catch {
-      // ignore
+  // Registrations state (separate from users - these are applications)
+  type Registration = { id: number; name: string; email: string; chapter?: string; status: "pending" | "approved"; submittedAt?: string };
+  const [registrations, setRegistrations] = React.useState<Registration[]>([
+    // Mock pending applications for demonstration
+    {
+      id: 1001,
+      name: "Maria Santos",
+      email: "maria.santos@example.com",
+      chapter: "UP Manila",
+      status: "pending",
+      submittedAt: "2025-11-08"
+    },
+    {
+      id: 1002,
+      name: "Juan Dela Cruz",
+      email: "juan.delacruz@example.com",
+      chapter: "PUP Manila",
+      status: "pending",
+      submittedAt: "2025-11-07"
+    },
+    {
+      id: 1003,
+      name: "Anna Garcia",
+      email: "anna.garcia@example.com",
+      chapter: "UST",
+      status: "approved",
+      submittedAt: "2025-11-06"
     }
-  }, [events]);
+  ]);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -117,34 +165,26 @@ export default function AdminPage() {
   }, [events, query]);
 
   // Census derived data
-  type Member = { id: string; name: string; chapter?: string };
-  const membersObj = membersData as { totalMembers?: number; members: Member[] };
+  type LocalMember = { id: string; name: string; chapter?: string };
   const memberIndex = React.useMemo(() => {
-    const idx = new Map<string, Member>();
-    for (const m of membersObj.members) idx.set(m.id, m);
+    const idx = new Map<string, LocalMember>();
+    for (const m of members) {
+      const localMember: LocalMember = {
+        id: m.memberId || String(m.id),
+        name: `${m.firstName} ${m.lastName}`,
+        chapter: m.school?.name
+      };
+      idx.set(m.memberId || String(m.id), localMember);
+    }
     return idx;
-  }, [membersObj.members]);
-  // Attendance: merge seed JSON with localStorage overrides produced by Scanner
-  const attStorageKey = "icpep-attendance";
-  const [attendanceOverride, setAttendanceOverride] = React.useState<Record<string, string[]>>({});
-  React.useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? window.localStorage.getItem(attStorageKey) : null;
-      if (raw) setAttendanceOverride(JSON.parse(raw) as Record<string, string[]>);
-    } catch {}
+  }, [members]);
+
+  // Attendance map using dummy data for now
+  const attendanceMap = React.useMemo(() => {
+    return attendanceData as Record<string, string[]>;
   }, []);
 
-  const attendanceMap = React.useMemo(() => {
-    const base = attendanceData as Record<string, string[]>;
-    const merged: Record<string, string[]> = { ...base };
-    for (const [k, v] of Object.entries(attendanceOverride)) {
-      const set = new Set([...(merged[k] ?? []), ...v]);
-      merged[k] = Array.from(set);
-    }
-    return merged;
-  }, [attendanceOverride]);
-
-  const totalMembers = membersObj.totalMembers ?? membersObj.members.length;
+  const totalMembers = members.length;
   const totalEvents = events.length;
   const totalAttendance = React.useMemo(() => {
     let sum = 0;
@@ -155,9 +195,9 @@ export default function AdminPage() {
     return sum;
   }, [events, attendanceMap]);
 
-  function attendeesFor(eventId: number): Member[] {
-    const ids = attendanceMap[String(eventId)] ?? [];
-    return ids.map((id) => memberIndex.get(id) ?? { id, name: id, chapter: "Unknown" });
+  function attendeesFor(eventId: number): LocalMember[] {
+    const memberIds = attendanceMap[String(eventId)] ?? [];
+    return memberIds.map((id) => memberIndex.get(id) ?? { id, name: id, chapter: "Unknown" });
   }
 
   // helpers
@@ -178,9 +218,9 @@ export default function AdminPage() {
   // Derived for member report
   const chapters = React.useMemo(() => {
     const set = new Set<string>();
-    for (const m of membersObj.members) if (m.chapter) set.add(m.chapter);
+    for (const m of members) if (m.school?.name) set.add(m.school.name);
     return ["all", ...Array.from(set)];
-  }, [membersObj.members]);
+  }, [members]);
 
   const engagement = React.useMemo(() => {
     const counts = new Map<string, number>();
@@ -271,9 +311,105 @@ export default function AdminPage() {
     setOpenDeleteId(null);
   }
 
+  // User management functions
+  function openCreateUser() {
+    setEditingUserId(null);
+    setUserDraft({
+      firstName: "",
+      lastName: "",
+      age: 18,
+      username: "",
+      password: "",
+      role: "MEMBER",
+      memberId: "",
+      schoolId: undefined
+    });
+    setUserErrors({});
+    setOpenUserForm(true);
+  }
+
+  function openEditUser(user: UserResponse) {
+    setEditingUserId(user.id);
+    setUserDraft({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      age: user.age,
+      username: user.username,
+      password: "", // Don't populate password for security
+      role: user.role as "ADMIN" | "MEMBER" | "SCANNER",
+      memberId: user.memberId || "",
+      schoolId: user.school?.id
+    });
+    setUserErrors({});
+    setOpenUserForm(true);
+  }
+
+  function validateUser(d: UserRequest) {
+    const next: Record<string, string> = {};
+    if (!d.firstName?.trim()) next.firstName = "Required";
+    if (!d.lastName?.trim()) next.lastName = "Required";
+    if (!d.username?.trim()) next.username = "Required";
+    if (editingUserId === null && !d.password?.trim()) next.password = "Required for new users";
+    if (d.age < 1 || d.age > 150) next.age = "Invalid age";
+    if (d.role === "MEMBER" && !d.memberId?.trim()) next.memberId = "Required for members";
+    setUserErrors(next);
+    return Object.keys(next).length === 0;
+  }
+
+  async function submitUser() {
+    if (!validateUser(userDraft)) return;
+
+    try {
+      setLoading(true);
+
+      if (editingUserId === null) {
+        // Create new user
+        const newUser = await userAPI.createUser(userDraft);
+        setUsers(prev => [newUser, ...prev]);
+      } else {
+        // Update existing user
+        const updatedUser = await userAPI.updateUser(editingUserId, userDraft);
+        setUsers(prev => prev.map(u => u.id === editingUserId ? updatedUser : u));
+      }
+
+      setOpenUserForm(false);
+    } catch (err) {
+      console.error('Failed to save user:', err);
+      setError(`Failed to ${editingUserId === null ? 'create' : 'update'} user. Please try again.`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function confirmDeleteUser(userId: number) {
+    try {
+      setLoading(true);
+      await userAPI.deleteUser(userId);
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      setDeleteUserId(null);
+    } catch (err) {
+      console.error('Failed to delete user:', err);
+      setError('Failed to delete user. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Prevent hydration errors
   if (!mounted) {
     return null;
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="relative min-h-dvh isolate overflow-hidden flex items-center justify-center" style={{ background: "var(--background)", color: "var(--foreground)" }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400 mx-auto mb-4"></div>
+          <div className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading admin dashboard...</div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -298,15 +434,27 @@ export default function AdminPage() {
               <Image src="/ICpEP.SE Logo.png" alt="logo" width={28} height={28} />
               <div>
                 <div className="orbitron text-lg leading-none text-cyan-400">Admin Dashboard</div>
-                <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>ICpEP NCR Management</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>ICpEP NCR Management</div>
+                  {backendAvailable !== null && (
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] ${backendAvailable
+                      ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                      : 'bg-orange-500/20 text-orange-300 border border-orange-500/30'
+                      }`}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${backendAvailable ? 'bg-green-400' : 'bg-orange-400'}`} />
+                      {backendAvailable ? 'Backend Connected' : 'Offline Mode'}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             <button
               onClick={() => {
                 try {
+                  authAPI.removeAuthToken();
                   window.localStorage.removeItem("icpep-user");
-                } catch {}
+                } catch { }
                 router.push("/auth/login");
               }}
               className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95 cursor-pointer"
@@ -341,7 +489,25 @@ export default function AdminPage() {
                 }
                 style={activeTab === "members" ? {} : { color: "var(--text-secondary)" }}
               >
-                Members
+                Users
+              </button>
+              <button
+                onClick={() => setActiveTab("approvals")}
+                className={
+                  "h-8 rounded-full px-4 text-[11px] cursor-pointer transition-all duration-300 flex items-center gap-2 " +
+                  (activeTab === "approvals"
+                    ? "border border-cyan-400/30 bg-cyan-400 text-black font-semibold orbitron"
+                    : "border border-cyan-400/20 hover:border-cyan-400/40")
+                }
+                style={activeTab === "approvals" ? {} : { color: "var(--text-secondary)" }}
+              >
+                Approvals
+                {registrations.filter(r => r.status === "pending").length > 0 && (
+                  <span className={`inline-flex items-center justify-center w-5 h-5 text-[9px] font-bold rounded-full ${activeTab === "approvals" ? "bg-red-500 text-white" : "bg-yellow-500 text-black"
+                    }`}>
+                    {registrations.filter(r => r.status === "pending").length}
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => setActiveTab("census")}
@@ -370,32 +536,11 @@ export default function AdminPage() {
             </div>
             {activeTab === "events" ? (
               <div className="flex items-center gap-2">
-              <div className="hidden md:block">
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search events…"
-                  className="h-8 w-[220px] rounded-md border border-cyan-400/30 px-3 text-[11px] outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 transition-all duration-300"
-                  style={{
-                    backgroundColor: "var(--input-bg)",
-                    color: "var(--input-text)",
-                  }}
-                />
-              </div>
-              <button
-                onClick={openCreate}
-                className="h-8 rounded-md bg-teal-500/90 px-3 text-[11px] font-semibold text-black transition hover:bg-teal-400 cursor-pointer"
-              >
-                + Create Event
-              </button>
-              </div>
-            ) : activeTab === "members" ? (
-              <div className="flex items-center gap-2">
                 <div className="hidden md:block">
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search members…"
+                    placeholder="Search events…"
                     className="h-8 w-[220px] rounded-md border border-cyan-400/30 px-3 text-[11px] outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 transition-all duration-300"
                     style={{
                       backgroundColor: "var(--input-bg)",
@@ -404,18 +549,71 @@ export default function AdminPage() {
                   />
                 </div>
                 <button
-                  onClick={() => {
-                    // Seed a dummy pending registration quickly
-                    const nextId = Math.max(0, ...registrations.map((r) => r.id)) + 1;
-                    setRegistrations((prev) => [
-                      { id: nextId, name: "New Applicant", email: `applicant${nextId}@mail.com`, status: "pending" },
-                      ...prev,
-                    ]);
+                  onClick={openCreate}
+                  className="h-8 rounded-md bg-teal-500/90 px-3 text-[11px] font-semibold text-black transition hover:bg-teal-400 cursor-pointer"
+                >
+                  + Create Event
+                </button>
+              </div>
+            ) : activeTab === "members" ? (
+              <div className="flex items-center gap-2">
+                <div className="hidden md:block">
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search users…"
+                    className="h-8 w-[220px] rounded-md border border-cyan-400/30 px-3 text-[11px] outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 transition-all duration-300"
+                    style={{
+                      backgroundColor: "var(--input-bg)",
+                      color: "var(--input-text)",
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={openCreateUser}
+                  className="h-8 rounded-md bg-teal-500/90 px-3 text-[11px] font-semibold text-black transition hover:bg-teal-400 cursor-pointer"
+                >
+                  + Create User
+                </button>
+              </div>
+            ) : activeTab === "approvals" ? (
+              <div className="flex items-center gap-2">
+                <div className="hidden md:block">
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search applications…"
+                    className="h-8 w-[220px] rounded-md border border-cyan-400/30 px-3 text-[11px] outline-none placeholder:text-cyan-200/50 focus:border-cyan-300 transition-all duration-300"
+                    style={{
+                      backgroundColor: "var(--input-bg)",
+                      color: "var(--input-text)",
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      const nextId = Math.max(0, ...users.map((u) => u.id)) + 1;
+                      const newUser = await userAPI.createUser({
+                        firstName: 'Pending',
+                        lastName: 'Applicant',
+                        age: 22,
+                        username: `applicant${nextId}`,
+                        password: 'temp123',
+                        role: 'MEMBER',
+                        memberId: `ICPEP-2025-${String(nextId + 100).padStart(3, '0')}`,
+                      });
+
+                      setUsers(prev => [newUser, ...prev]);
+                    } catch (err) {
+                      console.error('Failed to create applicant:', err);
+                      setError('Failed to create new applicant');
+                    }
                   }}
                   className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] transition hover:border-cyan-300/60 cursor-pointer"
                   style={{ color: "var(--text-secondary)" }}
                 >
-                  + Add Dummy Applicant
+                  + Add Test Applicant
                 </button>
               </div>
             ) : (
@@ -423,6 +621,20 @@ export default function AdminPage() {
             )}
           </div>
         </div>
+
+        {error ? (
+          <div className="mt-6 rounded-xl border border-red-400/30 bg-red-900/20 p-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span>{error}</span>
+              <button
+                onClick={() => setError(null)}
+                className="text-red-300 hover:text-red-100 transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         {!isAdmin ? (
           <div className="mt-6 rounded-xl border border-yellow-400/30 bg-yellow-900/20 p-4 text-sm">
@@ -494,45 +706,264 @@ export default function AdminPage() {
           </>
         ) : activeTab === "members" ? (
           <>
-            <h2 className="mt-6 orbitron text-lg text-cyan-400">Approved Members</h2>
-            <div className="mt-3 space-y-4">
+            <h2 className="mt-6 orbitron text-lg text-cyan-400">User Management</h2>
+
+            {/* Users Table */}
+            <div className="mt-4 rounded-xl border border-cyan-400/25 overflow-hidden shadow-[0_0_0_1px_rgba(34,211,238,0.08)_inset] neon-panel animate-slide-up transition-all duration-300" style={{ background: "var(--card-bg)" }}>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-cyan-400/20" style={{ background: "rgba(34,211,238,0.05)" }}>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider orbitron">Name</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider orbitron">Username</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider orbitron">Role</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider orbitron">School</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider orbitron">Member ID</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-cyan-300 uppercase tracking-wider orbitron">Age</th>
+                      <th className="px-6 py-4 text-right text-xs font-medium text-cyan-300 uppercase tracking-wider orbitron">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-cyan-400/10">
+                    {users
+                      .filter((user) =>
+                        query
+                          ? `${user.firstName} ${user.lastName}`.toLowerCase().includes(query.toLowerCase()) ||
+                          user.username.toLowerCase().includes(query.toLowerCase()) ||
+                          user.role.toLowerCase().includes(query.toLowerCase())
+                          : true
+                      )
+                      .map((user, idx) => (
+                        <tr key={user.id ?? `temp-${idx}`} className="hover:bg-cyan-400/5 transition-colors duration-200 animate-slide-up" style={{ animationDelay: `${idx * 0.02}s` }}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400/20 to-cyan-600/20 flex items-center justify-center mr-3 border border-cyan-400/30">
+                                <span className="text-xs font-bold text-cyan-300 orbitron">
+                                  {user.firstName[0]}{user.lastName[0]}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium orbitron transition-colors duration-300" style={{ color: "var(--text-primary)" }}>
+                                  {user.firstName} {user.lastName}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-mono bg-cyan-400/10 px-2 py-1 rounded border border-cyan-400/20 transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
+                              @{user.username}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full orbitron transition-all duration-300 ${user.role === 'ADMIN'
+                              ? 'bg-red-500/20 text-red-300 border border-red-500/40 shadow-[0_0_10px_rgba(239,68,68,0.3)]'
+                              : user.role === 'MEMBER'
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                                : 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.3)]'
+                              }`}>
+                              {user.role === 'ADMIN' && '👑 '}
+                              {user.role === 'MEMBER' && '🎓 '}
+                              {user.role === 'SCANNER' && '📱 '}
+                              {user.role}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
+                              {user.school?.name || (
+                                <span className="text-xs italic opacity-60">No school</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            {user.role === 'MEMBER' && user.memberId ? (
+                              <div className="text-sm font-mono bg-cyan-400/10 px-2 py-1 rounded border border-cyan-400/20 text-cyan-300">
+                                {user.memberId}
+                              </div>
+                            ) : (
+                              <span className="text-xs italic opacity-60">—</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm bg-gray-500/10 px-2 py-1 rounded border border-gray-500/20 text-center w-12 transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
+                              {user.age}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                title="Edit User"
+                                onClick={() => openEditUser(user)}
+                                className="cursor-pointer grid h-9 w-9 place-content-center rounded-md border border-cyan-400/30 transition-all duration-200 hover:border-cyan-300/60 hover:scale-110 active:scale-95"
+                                style={{ background: "var(--input-bg)", color: "var(--text-primary)" }}
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
+                                  <path d="M16.862 3.487a1.5 1.5 0 0 1 2.121 2.121L8.25 16.34 4.5 17.25l.91-3.75L16.862 3.487Z" />
+                                </svg>
+                              </button>
+                              <button
+                                title="Delete User"
+                                onClick={() => setDeleteUserId(user.id)}
+                                className="cursor-pointer grid h-9 w-9 place-content-center rounded-md border border-red-400/40 bg-red-950/40 text-red-300 transition-all duration-200 hover:border-red-300/70 hover:scale-110 active:scale-95"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
+                                  <path d="M6 7h12M9 7v10m6-10v10M4 7h16l-1 13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 7Zm4-3h8l1 3H7l1-3Z" />
+                                </svg>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    {users.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="px-6 py-12 text-center">
+                          <div className="flex flex-col items-center justify-center space-y-3">
+                            <div className="text-4xl opacity-50">👥</div>
+                            <div className="text-sm font-medium transition-colors duration-300" style={{ color: "var(--text-primary)" }}>
+                              {backendAvailable === false ? 'No Connection' : 'No Users'}
+                            </div>
+                            <div className="text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
+                              {backendAvailable === false
+                                ? 'Backend server not connected. Users will appear here when connected.'
+                                : 'No users found. Click "Add User" to create the first user.'}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        ) : activeTab === "approvals" ? (
+          <>
+            <h2 className="mt-6 orbitron text-lg text-cyan-400">Member Applications</h2>
+            <p className="mt-2 text-sm transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
+              Review and approve new member registration applications
+            </p>
+
+            {/* Pending Applications */}
+            <div className="mt-4 space-y-4">
               {registrations
                 .filter((r) =>
-                  query ? r.name.toLowerCase().includes(query.toLowerCase()) || r.email.toLowerCase().includes(query.toLowerCase()) : true
+                  query
+                    ? r.name.toLowerCase().includes(query.toLowerCase()) ||
+                    r.email.toLowerCase().includes(query.toLowerCase())
+                    : true
                 )
                 .map((r, idx) => (
-                  <div 
-                    key={r.id} 
-                    className="rounded-xl border border-cyan-400/25 p-4 neon-panel animate-slide-up transition-all duration-300 hover:scale-[1.01]"
+                  <div
+                    key={r.id}
+                    className="rounded-xl border border-cyan-400/25 p-6 neon-panel animate-slide-up transition-all duration-300 hover:scale-[1.01]"
                     style={{ background: "var(--card-bg)", animationDelay: `${idx * 0.05}s` }}
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <div className="orbitron text-[15px] transition-colors duration-300" style={{ color: "var(--text-primary)" }}>{r.name}</div>
-                        <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{r.email}</div>
-                        <div className="mt-1 inline-flex items-center rounded-full px-2 py-[2px] text-[10px]"
-                          style={{
-                            backgroundColor: r.status === "approved" ? "rgb(5 150 105 / 0.2)" : "rgb(234 179 8 / 0.15)",
-                            border: r.status === "approved" ? "1px solid rgba(16,185,129,0.5)" : "1px solid rgba(234,179,8,0.5)",
-                            color: r.status === "approved" ? "rgb(110 231 183)" : "rgb(253 224 71)",
-                          }}
-                        >
-                          {r.status === "approved" ? "Approved" : "Pending"}
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="orbitron text-lg transition-colors duration-300" style={{ color: "var(--text-primary)" }}>
+                              {r.name}
+                            </h3>
+                            <p className="text-sm transition-colors duration-300 mt-1" style={{ color: "var(--text-secondary)" }}>
+                              {r.email}
+                            </p>
+                          </div>
+                          <div className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium"
+                            style={{
+                              backgroundColor: r.status === "approved" ? "rgb(5 150 105 / 0.2)" : "rgb(234 179 8 / 0.15)",
+                              border: r.status === "approved" ? "1px solid rgba(16,185,129,0.5)" : "1px solid rgba(234,179,8,0.5)",
+                              color: r.status === "approved" ? "rgb(110 231 183)" : "rgb(253 224 71)",
+                            }}
+                          >
+                            {r.status === "approved" ? "✓ Approved" : "⏳ Pending Review"}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>School/Chapter</span>
+                            <div className="mt-1 transition-colors duration-300" style={{ color: "var(--text-primary)" }}>
+                              {r.chapter || 'Not specified'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Application ID</span>
+                            <div className="mt-1 font-mono text-cyan-300">
+                              #{String(r.id).padStart(4, '0')}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Status</span>
+                            <div className="mt-1 transition-colors duration-300" style={{ color: "var(--text-primary)" }}>
+                              {r.status === "approved" ? "Account Created" : "Awaiting Approval"}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                      {r.status === "pending" ? (
-                        <button
-                          onClick={() => setRegistrations((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "approved" } : x)))}
-                          className="cursor-pointer h-9 rounded-md bg-emerald-500 px-4 text-sm font-semibold text-black transition-all duration-200 hover:bg-emerald-400 active:scale-95"
-                        >
-                          Approve
-                        </button>
-                      ) : (
-                        <div className="text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Already approved</div>
-                      )}
+
+                      <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                        {r.status === "pending" ? (
+                          <>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  // Update the registration status
+                                  setRegistrations((prev) => prev.map((x) => (x.id === r.id ? { ...x, status: "approved" } : x)));
+
+                                  // In a real app, you might want to:
+                                  // 1. Send approval email
+                                  // 2. Create member record
+                                  // 3. Generate member ID and credentials
+
+                                } catch (err) {
+                                  console.error('Failed to approve application:', err);
+                                  setError('Failed to approve application');
+                                }
+                              }}
+                              className="cursor-pointer flex items-center gap-2 h-10 rounded-md bg-emerald-500 px-4 text-sm font-semibold text-black transition-all duration-200 hover:bg-emerald-400 active:scale-95"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                              </svg>
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Are you sure you want to reject the application from ${r.name}?`)) {
+                                  setRegistrations((prev) => prev.filter((x) => x.id !== r.id));
+                                }
+                              }}
+                              className="cursor-pointer flex items-center gap-2 h-10 rounded-md border border-red-400/40 bg-red-950/40 px-4 text-sm text-red-300 transition-all duration-200 hover:bg-red-500/30 active:scale-95"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Reject
+                            </button>
+                          </>
+                        ) : (
+                          <div className="flex items-center gap-2 px-4 py-2 text-sm transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
+                            <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Application Processed
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
+
+              {registrations.length === 0 && (
+                <div className="text-center py-12 rounded-xl border border-cyan-400/25 neon-panel" style={{ background: "var(--card-bg)" }}>
+                  <div className="text-6xl mb-4">📋</div>
+                  <h3 className="orbitron text-lg text-cyan-400 mb-2">No Applications</h3>
+                  <p className="text-sm transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
+                    {backendAvailable === false
+                      ? 'Backend server not connected. Applications will appear here when users register.'
+                      : 'No pending member applications at this time.'}
+                  </p>
+                </div>
+              )}
             </div>
           </>
         ) : activeTab === "census" ? (
@@ -583,8 +1014,8 @@ export default function AdminPage() {
           <>
             <h2 className="mt-6 orbitron text-lg text-cyan-400">Reports</h2>
             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <button 
-                onClick={() => setOpenReport("attendance")} 
+              <button
+                onClick={() => setOpenReport("attendance")}
                 className="cursor-pointer rounded-xl border border-cyan-400/25 p-5 neon-panel text-left transition-all duration-300 hover:border-cyan-300/50 hover:scale-[1.02] active:scale-95 animate-slide-up"
                 style={{ background: "var(--card-bg)", animationDelay: "0s" }}
               >
@@ -601,8 +1032,8 @@ export default function AdminPage() {
                   </div>
                 </div>
               </button>
-              <button 
-                onClick={() => setOpenReport("member")} 
+              <button
+                onClick={() => setOpenReport("member")}
                 className="cursor-pointer rounded-xl border border-cyan-400/25 p-5 neon-panel text-left transition-all duration-300 hover:border-cyan-300/50 hover:scale-[1.02] active:scale-95 animate-slide-up"
                 style={{ background: "var(--card-bg)", animationDelay: "0.05s" }}
               >
@@ -636,6 +1067,7 @@ export default function AdminPage() {
               error={errors.title}
               placeholder="Tech Talk: AI & ML"
             />
+
             <Input
               label="Date"
               type="date"
@@ -658,8 +1090,8 @@ export default function AdminPage() {
                   onChange={(e) => setDraft((d) => ({ ...d, badgeEmoji: e.target.value }))}
                   placeholder="e.g., 🏅, 🚀, 🤖"
                   className={`h-10 w-full rounded-md px-3 text-sm outline-none focus:ring-2 focus:ring-cyan-400/30 transition-colors duration-300 ${errors.badgeEmoji ? "border border-red-500/60" : "border"}`}
-                  style={{ 
-                    background: "var(--input-bg)", 
+                  style={{
+                    background: "var(--input-bg)",
                     color: "var(--input-text)",
                     borderColor: errors.badgeEmoji ? undefined : "var(--input-border)"
                   }}
@@ -692,8 +1124,8 @@ export default function AdminPage() {
                 onChange={(e) => setDraft((d) => ({ ...d, details: e.target.value }))}
                 placeholder="Describe the event: agenda, venue, speakers, etc."
                 className={`min-h-[88px] w-full rounded-md p-3 text-sm outline-none focus:ring-2 focus:ring-cyan-400/30 transition-colors duration-300 ${errors.details ? "border border-red-500/60" : "border"}`}
-                style={{ 
-                  background: "var(--input-bg)", 
+                style={{
+                  background: "var(--input-bg)",
                   color: "var(--input-text)",
                   borderColor: errors.details ? undefined : "var(--input-border)"
                 }}
@@ -753,8 +1185,8 @@ export default function AdminPage() {
         {openAttendeesFor != null ? (
           <div className="max-h-[60vh] overflow-auto rounded-lg border border-cyan-400/15 p-3 transition-colors duration-300" style={{ background: "var(--input-bg)" }}>
             <ul className="space-y-2 text-sm">
-              {attendeesFor(openAttendeesFor).map((m) => (
-                <li key={m.id} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-colors duration-300" style={{ background: "var(--card-bg)" }}>
+              {attendeesFor(openAttendeesFor).map((m, idx) => (
+                <li key={`attendee-${openAttendeesFor}-${m.id}-${idx}`} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-colors duration-300" style={{ background: "var(--card-bg)" }}>
                   <div>
                     <div className="text-cyan-400">{m.name}</div>
                     <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{m.id}</div>
@@ -781,7 +1213,7 @@ export default function AdminPage() {
                   style={{ background: "var(--input-bg)", color: "var(--input-text)" }}
                 >
                   {events.map((e) => (
-                    <option key={e.id} value={e.id}>
+                    <option key={`event-option-${e.id}`} value={e.id}>
                       {e.title}
                     </option>
                   ))}
@@ -823,11 +1255,11 @@ export default function AdminPage() {
                     .filter((m) =>
                       attendeeQuery
                         ? m.name.toLowerCase().includes(attendeeQuery.toLowerCase()) ||
-                          m.id.toLowerCase().includes(attendeeQuery.toLowerCase())
+                        m.id.toLowerCase().includes(attendeeQuery.toLowerCase())
                         : true
                     )
-                    .map((m) => (
-                      <li key={m.id} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-colors duration-300" style={{ background: "var(--card-bg)" }}>
+                    .map((m, idx) => (
+                      <li key={`report-attendee-${reportEventId}-${m.id}-${idx}`} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-colors duration-300" style={{ background: "var(--card-bg)" }}>
                         <div>
                           <div className="text-cyan-400">{m.name}</div>
                           <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{m.id}</div>
@@ -840,6 +1272,147 @@ export default function AdminPage() {
             ) : null}
           </div>
         ) : null}
+      </Modal>        {/* User Edit/Create Modal */}
+      <Modal
+        open={openUserForm}
+        onClose={() => setOpenUserForm(false)}
+        title={editingUserId === null ? "Create User" : "Edit User"}
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Input
+            label="First Name"
+            value={userDraft.firstName}
+            onChange={(e) => setUserDraft((d) => ({ ...d, firstName: e.target.value }))}
+            error={userErrors.firstName}
+            placeholder="John"
+          />
+          <Input
+            label="Last Name"
+            value={userDraft.lastName}
+            onChange={(e) => setUserDraft((d) => ({ ...d, lastName: e.target.value }))}
+            error={userErrors.lastName}
+            placeholder="Doe"
+          />
+          <Input
+            label="Username"
+            value={userDraft.username}
+            onChange={(e) => setUserDraft((d) => ({ ...d, username: e.target.value }))}
+            error={userErrors.username}
+            placeholder="johndoe"
+            disabled={editingUserId !== null}
+          />
+          <Input
+            label="Password"
+            type="password"
+            value={userDraft.password}
+            onChange={(e) => setUserDraft((d) => ({ ...d, password: e.target.value }))}
+            error={userErrors.password}
+            placeholder={editingUserId !== null ? "Leave empty to keep current" : "Enter password"}
+          />
+          <Input
+            label="Age"
+            type="number"
+            value={(userDraft.age || 18).toString()}
+            onChange={(e) => setUserDraft((d) => ({ ...d, age: parseInt(e.target.value) || 18 }))}
+            error={userErrors.age}
+            min={1}
+            max={150}
+          />
+          <div>
+            <label className="mb-1 block text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Role</label>
+            {editingUserId !== null ? (
+              <div 
+                className="h-10 w-full rounded-md px-3 text-sm flex items-center border"
+                style={{
+                  background: "var(--input-bg)",
+                  color: "var(--text-secondary)",
+                  borderColor: "var(--input-border)",
+                  opacity: 0.7
+                }}
+              >
+                {userDraft.role === "ADMIN" ? "Admin" : userDraft.role === "SCANNER" ? "Scanner" : "Member"}
+              </div>
+            ) : (
+              <select
+                value={userDraft.role}
+                onChange={(e) => setUserDraft((d) => ({ ...d, role: e.target.value as "ADMIN" | "MEMBER" | "SCANNER" }))}
+                className={`h-10 w-full rounded-md px-3 text-sm outline-none focus:ring-2 focus:ring-cyan-400/30 transition-colors duration-300 cursor-pointer border ${userErrors.role ? "border-red-500/60" : ""}`}
+                style={{
+                  background: "var(--input-bg)",
+                  color: "var(--input-text)",
+                  borderColor: userErrors.role ? undefined : "var(--input-border)"
+                }}
+              >
+                <option value="MEMBER">Member</option>
+                <option value="ADMIN">Admin</option>
+                <option value="SCANNER">Scanner</option>
+              </select>
+            )}
+            {userErrors.role && (
+              <div className="mt-1 text-[11px] text-red-300">{userErrors.role}</div>
+            )}
+          </div>
+        </div>
+
+        {userDraft.role === "MEMBER" && (
+          <div className="mt-4">
+            <Input
+              label="Member ID"
+              value={userDraft.memberId || ""}
+              onChange={(e) => setUserDraft((d) => ({ ...d, memberId: e.target.value }))}
+              error={userErrors.memberId}
+              placeholder="ICPEP-2025-001"
+            />
+          </div>
+        )}
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <button
+            onClick={() => setOpenUserForm(false)}
+            className="cursor-pointer h-10 rounded-md border border-cyan-400/40 px-4 text-sm transition-all duration-200 hover:border-cyan-300/60 active:scale-95"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Cancel
+          </button>
+          <Button className="w-auto cursor-pointer" onClick={submitUser}>
+            {editingUserId === null ? "Create User" : "Save Changes"}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* User Delete Confirmation Modal */}
+      <Modal
+        open={deleteUserId !== null}
+        onClose={() => setDeleteUserId(null)}
+        title="Delete User"
+      >
+        {deleteUserId && (
+          <>
+            <p className="text-sm transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
+              Are you sure you want to delete this user? This action cannot be undone and will remove:
+            </p>
+            <ul className="mt-3 space-y-1 text-sm list-disc list-inside transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>
+              <li>User account and login credentials</li>
+              <li>Member profile and passport data</li>
+              <li>All attendance stamps and activity history</li>
+            </ul>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setDeleteUserId(null)}
+                className="cursor-pointer h-10 rounded-md border border-cyan-400/40 px-4 text-sm transition-all duration-200 hover:border-cyan-300/60 active:scale-95"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => deleteUserId && confirmDeleteUser(deleteUserId)}
+                className="cursor-pointer h-10 rounded-md border border-red-400/60 bg-red-950/40 px-4 text-sm text-red-200 transition-all duration-200 hover:bg-red-500/30 active:scale-95"
+              >
+                Delete User
+              </button>
+            </div>
+          </>
+        )}
       </Modal>
 
       {/* Reports: Member */}
@@ -854,8 +1427,8 @@ export default function AdminPage() {
                 className="cursor-pointer h-9 rounded-md border border-cyan-400/30 px-2 text-sm outline-none focus:border-cyan-300 transition-colors duration-300 [&>option]:bg-black dark:[&>option]:bg-black [&>option]:text-cyan-100"
                 style={{ background: "var(--input-bg)", color: "var(--input-text)" }}
               >
-                {chapters.map((c) => (
-                  <option key={c} value={c}>
+                {chapters.map((c, idx) => (
+                  <option key={`chapter-${c}-${idx}`} value={c}>
                     {c === "all" ? "All Chapters" : c}
                   </option>
                 ))}
@@ -879,8 +1452,8 @@ export default function AdminPage() {
                 {engagement
                   .filter((e) => (chapterFilter === "all" ? true : (e.member.chapter ?? "") === chapterFilter))
                   .slice(0, 100)
-                  .map((e) => (
-                    <li key={e.member.id} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-colors duration-300" style={{ background: "var(--card-bg)" }}>
+                  .map((e, idx) => (
+                    <li key={`member-engagement-${e.member.id}-${e.count}-${idx}`} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-colors duration-300" style={{ background: "var(--card-bg)" }}>
                       <div className="min-w-0">
                         <div className="truncate text-cyan-400">{e.member.name}</div>
                         <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{e.member.id}</div>

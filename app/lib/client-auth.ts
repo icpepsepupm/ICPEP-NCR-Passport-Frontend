@@ -11,6 +11,20 @@ export type BasicUser = {
   memberId: string;
   school?: string;
   role?: "member" | "scanner" | "admin";
+  // Backend integration fields
+  id?: number;
+  username?: string;
+  member?: {
+    id: number;
+    memberId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    chapter: string;
+    yearLevel?: string;
+    course?: string;
+    contactNumber?: string;
+  };
 };
 
 const KEY = "icpep-user";
@@ -81,4 +95,21 @@ export function getDisplayName(user: BasicUser): string {
     return `${l}${l && (f || mi) ? ", " : ""}${f}${mi}`.trim() || user.name || "";
   }
   return user.name || "";
+}
+
+import { User as BackendUser } from './api';
+
+export function convertBackendUserToBasicUser(backendUser: BackendUser): BasicUser {
+  const member = backendUser.member;
+  return {
+    id: backendUser.id,
+    username: backendUser.username,
+    email: backendUser.email,
+    firstName: member?.firstName || backendUser.username,
+    lastName: member?.lastName || '',
+    memberId: member?.memberId || `USER-${backendUser.id}`,
+    school: member?.chapter,
+    role: backendUser.role === 'ADMIN' ? 'admin' : 'member',
+    member: member,
+  };
 }
