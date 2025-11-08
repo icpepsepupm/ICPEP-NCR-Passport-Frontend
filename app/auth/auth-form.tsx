@@ -5,130 +5,198 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Input from "@/app/components/ui/input";
 import Button from "@/app/components/ui/button";
-import usersData from "@/app/data/dummy.json";
-import registrationsSeed from "@/app/data/registrations.json";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+async function getErrorMessage(response: Response, defaultMessage: string): Promise<string> {
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    try {
+      const errorData = await response.json();
+      return errorData.message || defaultMessage;
+    } catch (e) {
+      return "Failed to parse error message from server.";
+    }
+  }
+  return defaultMessage;
+}
 
 export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
   const isLogin = mode === "login";
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  /** ----------------------------
+   *  Prevent back/forward navigation
+   *  ----------------------------
+   */
+  React.useEffect(() => {
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = (e: PopStateEvent) => {
+      // Push the same state again to block back/forward
+      window.history.pushState(null, "", window.location.href);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
+  // Role-based guard: redirect if user is already logged in
+  React.useEffect(() => {
+    setMounted(true);
+    try {
+      const stored = localStorage.getItem("icpep-user");
+      if (stored) {
+        const user = JSON.parse(stored);
+        if (user?.role) {
+          switch (user.role.toUpperCase()) {
+            case "ADMIN":
+              router.replace("/admin");
+              break;
+            case "SCANNER":
+              router.replace("/scanner");
+              break;
+            case "MEMBER":
+              router.replace("/dashboard");
+              break;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to parse user from localStorage", e);
+    }
+  }, [router]);
+
+  if (!mounted) return null;
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setLoading(true);
+
+    if (!API_BASE_URL) {
+      setError("API configuration error. Please contact support.");
+      setLoading(false);
+      return;
+    }
+
+    const fd = new FormData(e.currentTarget);
+
     if (isLogin) {
-      const fd = new FormData(e.currentTarget);
-      const email = String(fd.get("email") || "").trim().toLowerCase();
+      const username = String(fd.get("username") || "").trim();
       const password = String(fd.get("password") || "");
-      const match = usersData.users.find(
-        (u) => u.email.toLowerCase() === email && u.password === password
-      );
-      if (!match) {
-        setError("Invalid email or password.");
-        return;
-      }
-      setLoading(true);
-      // store session in localStorage for demo purposes
-      localStorage.setItem(
-        "icpep-user",
-        JSON.stringify({
-          name: match.name,
-          email: match.email,
-          memberId: match.memberId,
-            school: match.school,
-            role: (match as { role?: "member" | "scanner" | "admin" }).role ?? "member",
-        })
-      );
-        const role = (match as { role?: "member" | "scanner" | "admin" }).role ?? "member";
-        const target = role === "admin" ? "/admin" : role === "scanner" ? "/scanner" : "/dashboard";
-        setTimeout(() => router.push(target), 300);
-    } else {
-      // Signup: create a pending registration and redirect to waiting page
-      setLoading(true);
-      const fd = new FormData(e.currentTarget);
-      const name = String(fd.get("name") || "").trim();
-      const email = String(fd.get("email") || "").trim();
-      const school = String(fd.get("school") || "").trim();
 
       try {
-        const key = "icpep-registrations";
-        const raw = localStorage.getItem(key);
-        type Registration = { id: number; name: string; email: string; chapter?: string; status: "pending" | "approved" };
-        const current: Registration[] = raw ? (JSON.parse(raw) as Registration[]) : (registrationsSeed as Registration[]);
-        const nextId = Math.max(0, ...current.map((r) => r.id)) + 1;
-        const next = [
-          { id: nextId, name, email, chapter: school || undefined, status: "pending" as const },
-          ...current,
-        ];
-        localStorage.setItem(key, JSON.stringify(next));
-      } catch {
-        // ignore storage errors in demo
-      }
+        const response = await fetch(`${API_BASE_URL}/api/users/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
 
-      // Do not log the user in; show pending approval screen
-      setTimeout(() => router.push("/auth/pending"), 400);
+        if (!response.ok) {
+          const errorMsg = await getErrorMessage(response, "Invalid username or password.");
+          throw new Error(errorMsg);
+        }
+
+        const user = await response.json();
+
+        localStorage.setItem(
+          "icpep-user",
+          JSON.stringify({
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            schoolId: user.schoolId,
+            role: user.role,
+            memberId: user.memberId || null,
+          })
+        );
+
+        switch (user.role.toUpperCase()) {
+          case "ADMIN":
+            router.replace("/admin");
+            break;
+          case "SCANNER":
+            router.replace("/scanner");
+            break;
+          case "MEMBER":
+          default:
+            router.replace("/dashboard");
+            break;
+        }
+      } catch (err: any) {
+        setError(err.message || "An error occurred. Please try again.");
+        setLoading(false);
+      }
+    } else {
+      const firstName = String(fd.get("firstName") || "").trim();
+      const lastName = String(fd.get("lastName") || "").trim();
+      const username = String(fd.get("username") || "").trim();
+      const password = String(fd.get("password") || "");
+      const age = Number(fd.get("age") || 0);
+      const schoolId = Number(fd.get("schoolId") || 0);
+      const memberId = String(fd.get("memberId") || "");
+      const role = "member";
+
+      const userRequest = { firstName, lastName, username, password, age, schoolId, memberId, role };
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/users`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(userRequest),
+        });
+
+        if (!response.ok) {
+          const errorMsg = await getErrorMessage(response, "Registration failed. Please try again.");
+          throw new Error(errorMsg);
+        }
+
+        router.replace("/auth/pending");
+      } catch (err: any) {
+        setError(err.message || "A network error occurred. Please try again.");
+        setLoading(false);
+      }
     }
   }
 
   return (
     <>
       <form onSubmit={onSubmit} className="space-y-4">
-        {isLogin ? null : (
-          <Input
-            type="text"
-            name="name"
-            label="Name"
-            autoComplete="name"
-            required
-          />
+        {!isLogin && (
+          <>
+            <Input type="text" name="firstName" label="First Name" required />
+            <Input type="text" name="lastName" label="Last Name" required />
+            <Input type="text" name="username" label="Username" required />
+            <Input type="number" name="age" label="Age" min={0} max={120} />
+            <Input type="number" name="schoolId" label="School ID" required />
+            <Input type="text" name="memberId" label="Member ID (optional)" />
+          </>
         )}
-
-        <Input type="email" name="email" label="Email" autoComplete="email" required />
-
-        {isLogin ? null : (
-          <Input type="number" name="age" label="Age" min={0} max={120} />
-        )}
-
-        {isLogin ? null : (
-          <Input type="text" name="school" label="School" autoComplete="organization" />
-        )}
-
-        {isLogin ? null : (
-          <Input type="text" name="memberId" label="Member ID" />
-        )}
-
-        {isLogin ? (
-          <Input
-            type="password"
-            name="password"
-            label="Password"
-            autoComplete="current-password"
-            required
-          />
-        ) : (
-          <Input
-            type="password"
-            name="password"
-            label="Password"
-            autoComplete="new-password"
-            required
-          />
-        )}
-
-        {error ? (
-          <p className="text-sm text-rose-500 dark:text-rose-300">{error}</p>
-        ) : null}
-
+        {isLogin && <Input type="text" name="username" label="Username" required />}
+        <Input
+          type="password"
+          name="password"
+          label="Password"
+          autoComplete={isLogin ? "current-password" : "new-password"}
+          required
+        />
+        {error && <p className="text-sm text-rose-500">{error}</p>}
         <Button type="submit" className="mt-2" disabled={loading} loading={loading}>
           {isLogin ? "Log In" : "Register"}
         </Button>
       </form>
 
-      <p className="mt-4 text-center text-sm transition-colors duration-300" style={{ color: "var(--text-muted)" }}>
+      <p className="mt-4 text-center text-sm">
         {isLogin ? "Don't have an account? " : "Already have an account? "}
         <Link
-          className="text-cyan-500 dark:text-cyan-300 underline-offset-4 hover:underline transition-colors duration-300"
+          className="text-cyan-500 underline hover:underline"
           href={isLogin ? "/auth/signup" : "/auth/login"}
         >
           {isLogin ? "Sign up" : "Log in"}
