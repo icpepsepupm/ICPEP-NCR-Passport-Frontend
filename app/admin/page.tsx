@@ -9,11 +9,10 @@ import EventsPage from "./pages/EventsPage";
 import MembersPage from "./pages/MembersPage";
 import { ApprovalsPage } from "./pages/ApprovalsPage";
 import ReportsPage from "./pages/ReportsPage";
-import { CensusPage } from "./pages/CensusPage";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = React.useState<
-    "events" | "members" | "approvals" | "reports" | "census"
+    "events" | "members" | "approvals" | "reports"
   >("events");
 
   return (
@@ -50,7 +49,7 @@ export default function AdminPage() {
           style={{ background: "var(--card-bg)" }}
         >
           <TabNavigation
-            tabs={["Events", "Members", "Approvals", "Reports", "Census"]}
+            tabs={["Events", "Members", "Approvals", "Reports"]}
             activeTab={activeTab}
             onTabChange={(tab) =>
               setActiveTab(
@@ -59,7 +58,6 @@ export default function AdminPage() {
                   | "members"
                   | "approvals"
                   | "reports"
-                  | "census"
               )
             }
           />
@@ -71,7 +69,6 @@ export default function AdminPage() {
           {activeTab === "members" && <MembersPage />}
           {activeTab === "approvals" && <ApprovalsPage />}
           {activeTab === "reports" && <ReportsPage />}
-          {activeTab === "census" && <CensusPage />}
         </div>
       </div>
     </div>
