@@ -53,3 +53,15 @@ export function getAuthToken(): string | null {
   const user = JSON.parse(rawUser) as BasicUser;
   return user.token || null;
 }
+
+export function getDisplayName(user: BasicUser | null): string {
+  if (!user) return "Guest";
+  
+  const { firstName, lastName, middleName } = user;
+  
+  if (middleName) {
+    return `${firstName} ${middleName} ${lastName}`;
+  }
+  
+  return `${firstName} ${lastName}`;
+}

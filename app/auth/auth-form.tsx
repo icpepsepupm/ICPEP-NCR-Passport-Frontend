@@ -32,15 +32,15 @@ export default function AuthForm() {
     const stored = localStorage.getItem("icpep-user");
     if (stored) {
       const user = JSON.parse(stored);
-      if (user?.role) {
-        switch (user.role.toUpperCase()) {
-          case "ADMIN": router.replace("/admin"); break;
-          case "SCANNER": router.replace("/scanner"); break;
-          case "MEMBER": router.replace("/dashboard"); break;
-        }
-      }
+      const role = user?.role?.toUpperCase();
+      const userId = user?.id || user?.memberId; // use id or memberId
+      if (role === "ADMIN") router.replace("/admin");
+      else if (role === "SCANNER") router.replace("/scanner");
+      else if (role === "MEMBER" && userId) router.replace(`/dashboard/passport/${userId}`);
+      // do nothing for unknown/default roles
     }
   }, [router]);
+
 
   if (!mounted) return null;
 
@@ -78,12 +78,21 @@ export default function AuthForm() {
       });
 
       // Redirect by role
-      switch (data.role.toUpperCase()) {
-        case "ADMIN": router.replace("/admin"); break;
-        case "SCANNER": router.replace("/scanner"); break;
-        case "MEMBER": 
-        default: router.replace("/dashboard"); break;
+      switch (data.role?.toUpperCase()) {
+        case "ADMIN":
+          router.replace("/admin");
+          break;
+        case "SCANNER":
+          router.replace("/scanner");
+          break;
+        case "MEMBER":
+          // Directly go to passport page with user id
+          router.replace(`/dashboard/passport/${data.id || data.memberId}`);
+          break;
+        default:
+          break;
       }
+
     } catch (err: any) {
       setError(err.message || "An error occurred. Please try again.");
       setLoading(false);
