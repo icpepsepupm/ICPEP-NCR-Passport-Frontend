@@ -71,10 +71,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
         const data = await response.json();
 
-        // ✅ Store token
-        if (data.token) localStorage.setItem("icpep-auth-token", data.token);
-
-        // ✅ Store user info
+        // ✅ FIXED: Store user WITH token in ONE place
         setCurrentUser({
           firstName: data.firstName,
           lastName: data.lastName,
@@ -82,6 +79,7 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
           school: data.schoolId,
           role: data.role,
           memberId: data.memberId || null,
+          token: data.token, // ✅ THIS IS THE KEY!
         });
 
         // Redirect by role

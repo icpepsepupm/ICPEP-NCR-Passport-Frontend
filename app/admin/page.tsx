@@ -8,7 +8,7 @@ import { TabNavigation } from "./components/TabNavigation";
 import EventsPage from "./pages/EventsPage";
 import MembersPage from "./pages/MembersPage";
 import { ApprovalsPage } from "./pages/ApprovalsPage";
-import { ReportsPage } from "./pages/ReportsPage";
+import ReportsPage from "./pages/ReportsPage";
 import { CensusPage } from "./pages/CensusPage";
 
 export default function AdminPage() {

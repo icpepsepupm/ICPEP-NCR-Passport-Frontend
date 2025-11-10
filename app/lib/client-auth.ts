@@ -11,6 +11,7 @@ export type BasicUser = {
   school?: string;
   role?: "admin" | "member" | "scanner";
   member?: any;
+  token?: string; // ADD THIS LINE
 };
 
 // Get current user (returns null if no user)
@@ -45,7 +46,10 @@ export function clearCurrentUser() {
 }
 
 
-function parseStoredUser(raw?: string | null): BasicUser | null {
-  if (!raw) return null;
-  return JSON.parse(raw) as BasicUser;
+export function getAuthToken(): string | null {
+  if (typeof window === "undefined") return null;
+  const rawUser = localStorage.getItem(KEY);
+  if (!rawUser) return null;
+  const user = JSON.parse(rawUser) as BasicUser;
+  return user.token || null;
 }
