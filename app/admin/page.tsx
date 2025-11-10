@@ -7,12 +7,11 @@ import { TabNavigation } from "./components/TabNavigation";
 // Page Modules
 import EventsPage from "./pages/EventsPage";
 import MembersPage from "./pages/MembersPage";
-import { ApprovalsPage } from "./pages/ApprovalsPage";
 import ReportsPage from "./pages/ReportsPage";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = React.useState<
-    "events" | "members" | "approvals" | "reports"
+    "events" | "members" | "reports"
   >("events");
 
   return (
@@ -49,14 +48,13 @@ export default function AdminPage() {
           style={{ background: "var(--card-bg)" }}
         >
           <TabNavigation
-            tabs={["Events", "Members", "Approvals", "Reports"]}
+            tabs={["Events", "Members", "Reports"]}
             activeTab={activeTab}
             onTabChange={(tab) =>
               setActiveTab(
                 tab.toLowerCase() as
                   | "events"
                   | "members"
-                  | "approvals"
                   | "reports"
               )
             }
@@ -67,7 +65,6 @@ export default function AdminPage() {
         <div className="mt-8 animate-fade-in">
           {activeTab === "events" && <EventsPage />}
           {activeTab === "members" && <MembersPage />}
-          {activeTab === "approvals" && <ApprovalsPage />}
           {activeTab === "reports" && <ReportsPage />}
         </div>
       </div>
