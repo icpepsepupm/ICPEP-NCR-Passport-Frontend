@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
-interface User {
+interface MemberUser {
   id: number;
   username: string;
   firstName: string;
@@ -21,23 +21,33 @@ interface School {
 }
 
 interface EditMemberModalProps {
-  user: User;
+  user: MemberUser;
   onClose: () => void;
-  onSubmit: (data: Partial<User>) => void;
+  onSubmit: (data: Partial<MemberUser>) => void;
   schools: School[];
 }
 
 export default function EditMemberModal({ user, onClose, onSubmit, schools }: EditMemberModalProps) {
-  const [form, setForm] = useState<Partial<User>>({
+  const [form, setForm] = useState<Partial<MemberUser>>({
+    id: user.id, // ✅ ensure id is included
     firstName: user.firstName,
     lastName: user.lastName,
     age: user.age,
     role: user.role,
     schoolId: user.schoolId,
+    password: "",
   });
 
+  // Ensure schoolId defaults to first school if missing
+  useEffect(() => {
+    if (!form.schoolId && schools.length > 0) {
+      setForm((prev) => ({ ...prev, schoolId: schools[0].id }));
+    }
+  }, [schools]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const value = e.target.type === "number" ? Number(e.target.value) : e.target.value;
+    setForm({ ...form, [e.target.name]: value });
   };
 
   const handleSubmit = () => {
@@ -45,7 +55,8 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
       alert("First name, last name, role, and school are required.");
       return;
     }
-    onSubmit(form);
+    // ✅ Always include id when submitting
+    onSubmit({ ...form, id: user.id });
   };
 
   return (
@@ -69,10 +80,9 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* First Name */}
             <div>
-              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                First Name *
-              </label>
+              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>First Name *</label>
               <input
                 type="text"
                 name="firstName"
@@ -83,10 +93,9 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
               />
             </div>
 
+            {/* Last Name */}
             <div>
-              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                Last Name *
-              </label>
+              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Last Name *</label>
               <input
                 type="text"
                 name="lastName"
@@ -97,26 +106,24 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
               />
             </div>
 
+            {/* Age */}
             <div>
-              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                Age
-              </label>
+              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Age</label>
               <input
                 type="number"
                 name="age"
                 value={form.age || ""}
                 onChange={handleChange}
-                min="1"
-                max="120"
+                min={1}
+                max={120}
                 className="w-full h-10 px-3 rounded-md border border-cyan-400/30 text-sm outline-none focus:border-cyan-300 transition-all"
                 style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }}
               />
             </div>
 
+            {/* Role */}
             <div>
-              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                Role *
-              </label>
+              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Role *</label>
               <select
                 name="role"
                 value={form.role || ""}
@@ -130,10 +137,9 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
               </select>
             </div>
 
+            {/* School */}
             <div>
-              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                School *
-              </label>
+              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>School *</label>
               <select
                 name="schoolId"
                 value={form.schoolId || ""}
@@ -142,17 +148,14 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
                 style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }}
               >
                 {schools.map((school) => (
-                  <option key={school.id} value={school.id}>
-                    {school.name} ({school.code})
-                  </option>
+                  <option key={school.id} value={school.id}>{school.name} ({school.code})</option>
                 ))}
               </select>
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                Password (optional)
-              </label>
+              <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Password (optional)</label>
               <input
                 type="password"
                 name="password"
@@ -165,6 +168,7 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
             </div>
           </div>
 
+          {/* Buttons */}
           <div className="flex gap-3 pt-4">
             <button
               onClick={handleSubmit}
