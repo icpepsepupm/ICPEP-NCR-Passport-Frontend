@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 
+// 1️⃣ Add certificateUrl to your User interface
 interface User {
     firstName?: string;
     lastName?: string;
@@ -10,7 +11,8 @@ interface User {
     role?: string;
     schoolId?: number;
     password?: string;
-    memberId?: string; // ✅ Added this
+    memberId?: string;
+    certificateUrl?: string; // ✅ Added
 }
 
 interface School {
@@ -179,6 +181,21 @@ export default function AddMemberModal({ onClose, onSubmit, schools }: AddMember
                                 style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }}
                             />
                         </div>
+                        <div>
+                            <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
+                                Certificate URL
+                            </label>
+                            <input
+                                type="text"
+                                name="certificateUrl"
+                                value={form.certificateUrl || ""}
+                                onChange={handleChange}
+                                placeholder="https://example.com/certificate.pdf"
+                                className="w-full h-10 px-3 rounded-md border border-cyan-400/30 text-sm outline-none focus:border-cyan-300 transition-all"
+                                style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }}
+                            />
+                        </div>
+
                     </div>
 
                     <div className="flex gap-3 pt-4">

@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { Search, UserPlus, Edit2, Trash2, User as UserIcon, Shield, Crown, AlertCircle } from "lucide-react";
+import { Search, UserPlus, Edit2, Trash2, User as UserIcon, Shield, Crown, AlertCircle, FileText } from "lucide-react";
 import { getAuthToken } from "@/app/lib/client-auth";
 import AddMemberModal from "@/app/admin/components/AddMemberModal";
 import EditMemberModal from "@/app/admin/components/EditMemberModal";
 
-// ✅ Renamed to avoid conflict with Lucide's User icon
 interface MemberUser {
-  id: number;          // This will now always be mapped
+  id: number;
   username: string;
   firstName: string;
   lastName: string;
@@ -20,6 +19,7 @@ interface MemberUser {
   schoolId?: number;
   memberId?: string;
   password?: string;
+  ecertificateUrl?: string;
 }
 
 interface School {
@@ -102,12 +102,11 @@ export default function MembersPage() {
 
       const data = await res.json();
 
-      // ✅ Map _id to id if backend uses _id
       const mappedUsers: MemberUser[] = Array.isArray(data)
         ? data.map((u: any) => {
           const mappedUser = {
             ...u,
-            id: u.id || u._id || u.userId, // Try multiple possible ID fields
+            id: u.id || u._id || u.userId,
           };
 
           if (!mappedUser.id) {
@@ -353,13 +352,14 @@ export default function MembersPage() {
                   <th className="text-left px-4 py-3 text-[11px] font-semibold text-cyan-400 uppercase">Age</th>
                   <th className="text-left px-4 py-3 text-[11px] font-semibold text-cyan-400 uppercase">Role</th>
                   <th className="text-left px-4 py-3 text-[11px] font-semibold text-cyan-400 uppercase">Status</th>
+                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-cyan-400 uppercase">Certificate</th>
                   <th className="text-right px-4 py-3 text-[11px] font-semibold text-cyan-400 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {!loading && filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center">
+                    <td colSpan={7} className="px-4 py-12 text-center">
                       <UserIcon className="w-12 h-12 mx-auto mb-3 text-cyan-400/30" />
                       <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No members found</p>
                     </td>
@@ -381,21 +381,38 @@ export default function MembersPage() {
                       <td className="px-4 py-4"><span className="text-[12px] font-mono" style={{ color: "var(--text-secondary)" }}>{user.username}</span></td>
                       <td className="px-4 py-4"><span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>{user.age || "—"}</span></td>
                       <td className="px-4 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${user.role === "ADMIN" ? "bg-purple-500/20 text-purple-300 border border-purple-400/30" :
-                            user.role === "SCANNER" ? "bg-blue-500/20 text-blue-300 border border-blue-400/30" :
-                              "bg-cyan-500/20 text-cyan-300 border border-cyan-400/30"
-                          }`}>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${
+                          user.role === "ADMIN" ? "bg-purple-500/20 text-purple-300 border border-purple-400/30" :
+                          user.role === "SCANNER" ? "bg-blue-500/20 text-blue-300 border border-blue-400/30" :
+                          "bg-cyan-500/20 text-cyan-300 border border-cyan-400/30"
+                        }`}>
                           {getRoleIcon(user.role)}
                           {user.role}
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium ${user.status === "APPROVED" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30" :
-                            user.status === "REJECTED" ? "bg-red-500/20 text-red-300 border border-red-400/30" :
-                              "bg-amber-500/20 text-amber-300 border border-amber-400/30"
-                          }`}>
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-medium ${
+                          user.status === "APPROVED" ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30" :
+                          user.status === "REJECTED" ? "bg-red-500/20 text-red-300 border border-red-400/30" :
+                          "bg-amber-500/20 text-amber-300 border border-amber-400/30"
+                        }`}>
                           {user.status || "PENDING"}
                         </span>
+                      </td>
+                      <td className="px-4 py-4">
+                        {user.ecertificateUrl ? (
+                          <a
+                            href={user.ecertificateUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-[12px] text-cyan-300 hover:text-cyan-200 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            View
+                          </a>
+                        ) : (
+                          <span className="text-[12px]" style={{ color: "var(--text-secondary)" }}>—</span>
+                        )}
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center justify-end gap-2">
