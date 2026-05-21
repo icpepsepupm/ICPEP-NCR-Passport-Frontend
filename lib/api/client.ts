@@ -140,4 +140,56 @@ export const apiClient = {
 
   delete: <T = unknown>(endpoint: string, options?: Omit<RequestOptions, 'body' | 'method'>) =>
     fetchWithConfig<T>(endpoint, { ...options, method: 'DELETE' }),
+
+  upload: async <T = unknown>(
+    endpoint: string,
+    formData: FormData,
+    options?: Omit<RequestOptions, 'body' | 'method'>
+  ): Promise<T> => {
+    const { token, timeout = DEFAULT_TIMEOUT_MS, headers: customHeaders, retries = MAX_RETRIES } =
+      options ?? {}
+
+    const headers = new Headers(customHeaders)
+    const authToken = token ?? getAuthToken()
+    if (authToken) headers.set('Authorization', `Bearer ${authToken}`)
+
+    const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+    let lastError: unknown
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const controller = new AbortController()
+      let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+      try {
+        timeoutId = setTimeout(() => controller.abort(), timeout)
+        const response = await fetch(`${API_BASE}${normalizedEndpoint}`, {
+          method: 'POST',
+          headers,
+          credentials: 'include',
+          signal: controller.signal,
+          body: formData,
+        })
+
+        const data = await parseResponseBody(response)
+        if (!response.ok) throw normalizeError(response.status, data)
+        return data as T
+      } catch (error) {
+        lastError = error
+        if (error instanceof ApiError && !shouldRetry(error, attempt, retries)) throw error
+        if (!(error instanceof ApiError) && !shouldRetry(error, attempt, retries)) {
+          throw new ApiError(
+            error instanceof Error ? error.message : 'Network error',
+            0,
+            'NETWORK'
+          )
+        }
+        await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)))
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId)
+      }
+    }
+
+    if (lastError instanceof ApiError) throw lastError
+    throw new ApiError('Upload failed', 0, 'NETWORK')
+  },
 }

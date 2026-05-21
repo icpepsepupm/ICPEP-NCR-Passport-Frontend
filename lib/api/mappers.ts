@@ -35,6 +35,7 @@ export type ClientStamp = {
   eventSchedule: string
   eventVenue: string
   eventType: EventType
+  eventBadge?: string | null
 }
 
 export function mapDbUser(row: Record<string, unknown>): ClientUser {
@@ -119,5 +120,6 @@ export function mapDbStamp(
     eventSchedule: String(event?.schedule ?? ''),
     eventVenue: String(event?.venue_name ?? ''),
     eventType: (event?.event_type as EventType) ?? 'OTHERS',
+    eventBadge: (event?.badge as string) ?? null,
   }
 }

@@ -1,5 +1,6 @@
 // Storage utility for Supabase Storage (QR codes, certificates, images)
 import { createServerSupabaseClient } from '../supabase/server'
+import { createAdminClient } from '../supabase/admin'
 
 export const storageService = {
   // Upload QR code buffer to storage
@@ -27,6 +28,32 @@ export const storageService = {
       return { url: publicData.publicUrl, error: null }
     } catch (error) {
       console.error('QR upload failed:', error)
+      return { url: null, error }
+    }
+  },
+
+  async uploadEventBadge(
+    file: Blob | Buffer,
+    opts: { contentType: string; extension: string; eventId?: number | string }
+  ): Promise<{ url: string | null; error: unknown }> {
+    try {
+      const admin = createAdminClient()
+      const bucket =
+        process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET || 'passport-assets'
+      const safeExt = opts.extension.replace(/[^a-z0-9]/gi, '') || 'png'
+      const fileName = `events/badges/${opts.eventId ?? 'new'}-${Date.now()}.${safeExt}`
+
+      const { error } = await admin.storage.from(bucket).upload(fileName, file, {
+        contentType: opts.contentType,
+        upsert: false,
+      })
+
+      if (error) return { url: null, error }
+
+      const { data: publicData } = admin.storage.from(bucket).getPublicUrl(fileName)
+      return { url: publicData.publicUrl, error: null }
+    } catch (error) {
+      console.error('Event badge upload failed:', error)
       return { url: null, error }
     }
   },

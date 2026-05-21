@@ -6,6 +6,7 @@ import Modal from "@/app/components/ui/modal";
 import { apiClient } from "@/lib/api/client";
 import { getErrorMessage } from "@/lib/api/errors";
 import type { ClientStamp, ClientUser } from "@/lib/api/mappers";
+import BadgeDisplay from "@/app/components/ui/badge-display";
 
 type Badge = {
   id: string;
@@ -105,7 +106,7 @@ export default function BadgesPage() {
         minute: "2-digit",
       }),
       eventType: stamp.eventType || "OTHERS",
-      icon: "🏅",
+      icon: stamp.eventBadge ?? undefined,
       details: `Event held at ${stamp.eventVenue}\nStamped on: ${new Date(stamp.stampDate).toLocaleString()}\nType: ${stamp.eventType || "OTHERS"}`,
       venue: stamp.eventVenue,
     }));
@@ -301,7 +302,9 @@ const BadgeCard = React.memo(({ badge, onOpen }: { badge: Badge; onOpen: () => v
       <span className={`absolute right-3 top-3 rounded-full px-2 py-0.5 text-xs transition-transform group-hover:scale-110 ${style.chip}`}>
         {badge.eventType.replace(/_/g, " ")}
       </span>
-      <div className={`flex h-14 w-14 items-center justify-center rounded-xl text-3xl ring-1 transition-all group-hover:scale-110 group-hover:rotate-6 ${style.ring}`}>{badge.icon}</div>
+      <div className={`rounded-xl ring-1 transition-all group-hover:scale-110 group-hover:rotate-6 ${style.ring}`}>
+        <BadgeDisplay value={badge.icon} size="md" alt={badge.title} />
+      </div>
       <div className="mt-4 font-medium transition-colors" style={{ color: "var(--text-primary)" }}>{badge.title}</div>
       <div className="text-xs transition-colors" style={{ color: "var(--text-secondary)" }}>{badge.date}</div>
       <button onClick={onOpen} className="mt-4 h-9 w-full rounded-md bg-cyan-400 text-sm font-semibold text-black orbitron hover:bg-cyan-300 transition-all hover:scale-105 active:scale-95 cursor-pointer">
@@ -315,8 +318,8 @@ const BadgeDetails = ({ badge, onClose }: { badge: Badge; onClose: () => void })
   const style = EVENT_STYLES[badge.eventType];
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-[auto_1fr]">
-      <div className={`mx-auto sm:mx-0 flex h-28 w-28 items-center justify-center rounded-2xl text-5xl ring-1 ${style.ring}`}>
-        {badge.icon}
+      <div className={`mx-auto sm:mx-0 rounded-2xl ring-1 ${style.ring}`}>
+        <BadgeDisplay value={badge.icon} size="lg" alt={badge.title} />
       </div>
       <div>
         <div className="flex flex-wrap items-center gap-2">

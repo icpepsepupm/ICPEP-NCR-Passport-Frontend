@@ -6,6 +6,9 @@ import { useEvents } from "@/lib/hooks/useEvents";
 import type { ClientEvent } from "@/lib/api/mappers";
 import { getErrorMessage } from "@/lib/api/errors";
 import { signOutAndClear } from "@/app/lib/client-auth";
+import DatePicker from "@/app/components/ui/date-picker";
+import BadgePicker from "@/app/components/ui/badge-picker";
+import BadgeDisplay from "@/app/components/ui/badge-display";
 
 export default function EventsPage() {
   const [form, setForm] = useState<Partial<ClientEvent>>({});
@@ -177,7 +180,7 @@ export default function EventsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-cyan-400/20" style={{ background: "var(--input-bg)" }}>
-                  {["Event", "Date", "Location", "Description", "Attendees", "Actions"].map((h) => (
+                  {["Event", "Badge", "Date", "Location", "Description", "Attendees", "Actions"].map((h) => (
                     <th key={h} className={`px-4 py-3 text-[11px] font-semibold text-cyan-400 uppercase ${h === "Actions" ? "text-right" : "text-left"}`}>{h}</th>
                   ))}
                 </tr>
@@ -186,14 +189,14 @@ export default function EventsPage() {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={`skel-${i}`} className="border-b border-cyan-400/10">
-                      {Array.from({ length: 6 }).map((__, j) => (
+                      {Array.from({ length: 7 }).map((__, j) => (
                         <td key={j} className="px-4 py-4"><div className="h-4 bg-cyan-400/10 rounded animate-pulse" /></td>
                       ))}
                     </tr>
                   ))
                 ) : events.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-12 text-center">
+                    <td colSpan={7} className="px-4 py-12 text-center">
                       <Calendar className="w-12 h-12 mx-auto mb-3 text-cyan-400/30" />
                       <p className="text-sm" style={{ color: "var(--text-secondary)" }}>No events found</p>
                       <p className="text-[11px] mt-1" style={{ color: "var(--text-secondary)" }}>
@@ -218,6 +221,9 @@ export default function EventsPage() {
                             )}
                           </div>
                         </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <BadgeDisplay value={event.badge} size="sm" alt={`${event.name} badge`} />
                       </td>
                       <td className="px-4 py-4 text-[12px]" style={{ color: "var(--text-secondary)" }}>{formatDate(event.date)}</td>
                       <td className="px-4 py-4 text-[12px]" style={{ color: "var(--text-secondary)" }}>{event.location || "—"}</td>
@@ -251,8 +257,14 @@ export default function EventsPage() {
                     <input type="text" name="name" value={form.name || ""} onChange={handleChange} className="w-full h-10 px-3 rounded-md border border-cyan-400/30 text-sm outline-none focus:border-cyan-300" style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }} required />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Date *</label>
-                    <input type="date" name="date" value={form.date || ""} onChange={handleChange} className="w-full h-10 px-3 rounded-md border border-cyan-400/30 text-sm outline-none focus:border-cyan-300" style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }} required />
+                    <DatePicker
+                      label="Date"
+                      name="date"
+                      value={form.date || ""}
+                      onChange={handleChange}
+                      required
+                      placeholder="Select event date"
+                    />
                   </div>
                   <div>
                     <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Location *</label>
@@ -262,6 +274,11 @@ export default function EventsPage() {
                     <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>Description</label>
                     <textarea name="description" value={form.description || ""} onChange={handleChange} rows={4} className="w-full px-3 py-2 rounded-md border border-cyan-400/30 text-sm outline-none focus:border-cyan-300 resize-none" style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }} />
                   </div>
+                  <BadgePicker
+                    value={form.badge ?? null}
+                    onChange={(badge) => setForm((prev) => ({ ...prev, badge: badge ?? undefined }))}
+                    eventId={editingId ?? undefined}
+                  />
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-10 rounded-md bg-teal-500/90 text-black font-semibold text-sm hover:bg-teal-400 disabled:opacity-60 cursor-pointer">
