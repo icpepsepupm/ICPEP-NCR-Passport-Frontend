@@ -3,7 +3,9 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { apiClient } from '@/lib/api/client'
 import type { User } from '@supabase/supabase-js'
+
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
@@ -40,12 +42,12 @@ export function useAuth() {
 
   const signOut = useCallback(async () => {
     try {
-      await supabase.auth.signOut()
+      await apiClient.post('/auth/signout', {})
       setUser(null)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Sign out failed'))
     }
-  }, [supabase])
+  }, [])
 
   return { user, loading, error, signOut }
 }

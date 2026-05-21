@@ -21,7 +21,7 @@ export const adminQueries = {
     userData: {
       first_name: string
       last_name: string
-      username: string
+      username?: string
       role: 'ADMIN' | 'SCANNER' | 'MEMBER'
       school_id?: number
       member_id?: string
@@ -61,10 +61,11 @@ export const adminQueries = {
       .from('users')
       .insert([
         {
+          ...userData,
           id: authData.user.id,
           email,
+          username: userData.username || fullId,
           full_id: fullId,  // ICPEPSE-NCR-XXX-XXXXXX
-          ...userData,
         },
       ])
       .select()
@@ -140,7 +141,7 @@ export const adminQueries = {
       password: string
       first_name: string
       last_name: string
-      username: string
+      username?: string
       role: 'ADMIN' | 'SCANNER' | 'MEMBER'
       school_id?: number
       member_id?: string

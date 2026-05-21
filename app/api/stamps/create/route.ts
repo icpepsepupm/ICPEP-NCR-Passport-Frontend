@@ -2,7 +2,6 @@
 // POST /api/stamps/create
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { stampQueries } from '@/lib/supabase/passports'
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,11 +40,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Call PL/pgSQL function to create stamp safely
-    const { data, error } = await stampQueries.createStamp(
-      passportId,
-      eventId,
-      user.id
-    )
+    const { data, error } = await supabase.rpc('create_stamp', {
+      p_passport_id: passportId,
+      p_event_id: eventId,
+      p_scanner_id: user.id,
+    })
 
     if (error) {
       console.error('Stamp creation error:', error)

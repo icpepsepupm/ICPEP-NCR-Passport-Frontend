@@ -5,21 +5,7 @@ import { useRouter } from "next/navigation";
 import Input from "@/app/components/ui/input";
 import Button from "@/app/components/ui/button";
 import { setCurrentUser } from "@/app/lib/client-auth";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-async function getErrorMessage(response: Response, defaultMessage: string): Promise<string> {
-  const contentType = response.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
-    try {
-      const errorData = await response.json();
-      return errorData.message || defaultMessage;
-    } catch {
-      return "Failed to parse error message from server.";
-    }
-  }
-  return defaultMessage;
-}
+import { apiClient } from "@/lib/api/client";
 
 export default function AuthForm() {
   const router = useRouter();
@@ -54,31 +40,21 @@ export default function AuthForm() {
     const password = String(fd.get("password") || "");
 
     try {
-      const response = await fetch(`${API_BASE_URL}/users/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) {
-        const errorMsg = await getErrorMessage(response, "Invalid username or password.");
-        throw new Error(errorMsg);
-      }
-
-      const data = await response.json();
+      const result = await apiClient.post("/auth/signin", { username, password });
 
       setCurrentUser({
-        firstName: data.firstName,
-        lastName: data.lastName,
-        username: data.username,
-        school: data.schoolId,
-        role: data.role,
-        memberId: data.memberId || null,
-        token: data.token,
+        firstName: result.user?.first_name || "",
+        lastName: result.user?.last_name || "",
+        username: result.user?.username,
+        school: result.user?.school_id || null,
+        role: result.user?.role,
+        memberId: result.user?.member_id || null,
+        id: result.user?.id,
+        token: result.session?.access_token,
       });
 
       // Redirect by role
-      switch (data.role?.toUpperCase()) {
+      switch (result.user?.role?.toUpperCase()) {
         case "ADMIN":
           router.replace("/admin");
           break;
@@ -87,7 +63,7 @@ export default function AuthForm() {
           break;
         case "MEMBER":
           // Directly go to passport page with user id
-          router.replace(`/dashboard/passport/${data.id || data.memberId}`);
+          router.replace(`/dashboard/passport/${result.user.id || result.user.member_id}`);
           break;
         default:
           break;

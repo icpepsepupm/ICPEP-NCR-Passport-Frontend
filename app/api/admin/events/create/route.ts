@@ -2,7 +2,6 @@
 // POST /api/admin/events/create
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { eventQueries } from '@/lib/supabase/events'
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,15 +36,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data, error } = await eventQueries.createEvent({
-      name,
-      schedule: schedule || new Date().toISOString(),
-      venue_name: venue_name || '',
-      venue_image,
-      description,
-      badge,
-      event_type,
-    })
+    const { data, error } = await supabase
+      .from('events')
+      .insert([{
+        name,
+        schedule: schedule || new Date().toISOString(),
+        venue_name: venue_name || '',
+        venue_image,
+        description,
+        badge,
+        event_type,
+      }])
+      .select()
+      .single()
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 })

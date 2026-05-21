@@ -16,27 +16,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user by username
+    // Get user by username OR email (case-insensitive robust login)
     const { data: userData, error: userError } = await supabase
       .from('users')
-      .select('id, email, role')
-      .eq('username', username)
+      .select('id, email, role, username, first_name, last_name, school_id, member_id')
+      .or(`username.ilike.${username},email.ilike.${username}`)
       .single()
 
     if (userError || !userData) {
+      console.error('User lookup error:', userError?.message || 'User not found in DB');
       return NextResponse.json(
         { error: 'Invalid username or password' },
         { status: 401 }
       )
     }
 
-    // Sign in with email + password
+    // Sign in with the actual mapped email + password
     const { data, error } = await supabase.auth.signInWithPassword({
       email: userData.email,
       password,
     })
 
     if (error) {
+      console.error('Supabase Auth error:', error.message);
       return NextResponse.json(
         { error: 'Invalid username or password' },
         { status: 401 }
@@ -47,8 +49,12 @@ export async function POST(request: NextRequest) {
       success: true,
       user: {
         id: userData.id,
-        username: username,
+        username: userData.username,
         role: userData.role,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        school_id: userData.school_id,
+        member_id: userData.member_id,
       },
       session: {
         access_token: data.session?.access_token,

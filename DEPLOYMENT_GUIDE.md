@@ -81,7 +81,7 @@ const supabase = createClient()
 
 // 1. Create auth user
 const { data: authData, error: authError } = await supabase.auth.signUp({
-  email: 'admin@example.com',
+  email: 'admin@passport.local',
   password: 'secure-password-123',
 })
 
@@ -90,10 +90,12 @@ const { error: profileError } = await supabase
   .from('users')
   .insert([{
     id: authData.user?.id,
+    email: 'admin@passport.local',
     first_name: 'Admin',
     last_name: 'User',
     role: 'ADMIN',
-    username: 'admin'
+    username: 'ICPEPSE-NCR-ADM-X1Y2Z3',
+    full_id: 'ICPEPSE-NCR-ADM-X1Y2Z3'
   }])
 ```
 

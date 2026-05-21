@@ -2,6 +2,7 @@
 // POST /api/admin/users/import
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { adminQueries } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,32 +36,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prepare users data for insertion
-    const usersToInsert = users.map((u: any) => ({
-      first_name: u.firstName,
-      last_name: u.lastName,
-      username: u.username,
-      email: u.email,
-      role: u.role || 'MEMBER',
-      school_id: u.schoolId,
-      member_id: u.memberId,
-    }))
+    // Batch create users properly using auth and full_id generation
+    const { successful, failed, results } = await adminQueries.bulkCreateUsers(
+      users.map((u: any) => ({
+        first_name: u.firstName,
+        last_name: u.lastName,
+        username: u.username,
+        email: u.email,
+        password: u.password || 'TempPassword123!@', // Default if not provided
+        role: u.role || 'MEMBER',
+        school_id: u.schoolId,
+        member_id: u.memberId,
+      }))
+    )
 
-    // Batch insert users
-    const { data, error } = await supabase
-      .from('users')
-      .insert(usersToInsert)
-      .select()
-
-    if (error) {
-      console.error('Bulk user import error:', error)
-      return NextResponse.json({ error: 'Import failed' }, { status: 500 })
+    if (failed > 0 && successful === 0) {
+      return NextResponse.json({ error: 'All user imports failed' }, { status: 500 })
     }
 
     return NextResponse.json({
       success: true,
-      imported: data?.length || 0,
-      users: data,
+      imported: successful,
+      failed: failed,
+      users: results.map(r => r.data || r.error),
     })
   } catch (error) {
     console.error('API error:', error)

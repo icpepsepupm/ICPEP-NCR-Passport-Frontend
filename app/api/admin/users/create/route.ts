@@ -31,23 +31,19 @@ export async function POST(request: NextRequest) {
       password,
       first_name,
       last_name,
-      username,
+      email,
       role,
       school_id,
       member_id,
     } = body
 
-    if (!password || !first_name || !last_name || !username || !role) {
+    if (!password || !first_name || !last_name || !email || !role || !school_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
-
-    // Generate email from username (for Supabase Auth)
-    const email = `${username}@passport.local`
 
     const { data, error } = await adminQueries.createUserWithAuth(email, password, {
       first_name,
       last_name,
-      username,
       role,
       school_id,
       member_id,

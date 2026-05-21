@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from './useAuth'
-import { userQueries } from '@/lib/supabase/users'
+import { apiClient } from '@/lib/api/client'
 
 export function useUserProfile() {
   const { user } = useAuth()
@@ -21,9 +21,8 @@ export function useUserProfile() {
     const fetchProfile = async () => {
       try {
         setLoading(true)
-        const { data, error: queryError } = await userQueries.getUserById(user.id)
-        if (queryError) throw queryError
-        setProfile(data)
+        const result = await apiClient.get('/user/profile')
+        setProfile(result.data)
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch profile'))
       } finally {

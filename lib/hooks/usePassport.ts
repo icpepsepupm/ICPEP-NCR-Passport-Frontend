@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from './useAuth'
-import { passportQueries } from '@/lib/supabase/passports'
+import { apiClient } from '@/lib/api/client'
 
 export function usePassport() {
   const { user } = useAuth()
@@ -21,11 +21,8 @@ export function usePassport() {
     const fetchPassport = async () => {
       try {
         setLoading(true)
-        const { data, error: queryError } = await passportQueries.getPassportByMemberId(
-          user.id
-        )
-        if (queryError) throw queryError
-        setPassport(data)
+        const result = await apiClient.get('/passport')
+        setPassport(result.data)
       } catch (err) {
         // Passport might not exist yet, which is fine
         setPassport(null)

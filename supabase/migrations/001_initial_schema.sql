@@ -154,11 +154,9 @@ using (
   auth.jwt() ->> 'role' = 'ADMIN'
 );
 
-create policy "users_self_select"
+create policy "users_public_select"
 on users for select
-using (
-  id = auth.uid()
-);
+using (true);
 
 create policy "users_self_update"
 on users for update
