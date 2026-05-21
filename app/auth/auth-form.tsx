@@ -7,6 +7,7 @@ import Button from "@/app/components/ui/button";
 import { setCurrentUser, type BasicUser } from "@/app/lib/client-auth";
 import { apiClient } from "@/lib/api/client";
 import { ApiError } from "@/lib/api/errors";
+import { createClient } from "@/lib/supabase/client";
 
 export default function AuthForm({ mode = "login" }: { mode?: "login" | "signup" }) {
   const router = useRouter();
@@ -57,8 +58,16 @@ export default function AuthForm({ mode = "login" }: { mode?: "login" | "signup"
           school_id: number | null;
           member_id: string | null;
         };
-        session?: { access_token?: string };
+        session?: { access_token?: string; refresh_token?: string };
       }>("/auth/signin", { username, password });
+
+      if (result.session?.access_token && result.session?.refresh_token) {
+        const supabase = createClient();
+        await supabase.auth.setSession({
+          access_token: result.session.access_token,
+          refresh_token: result.session.refresh_token,
+        });
+      }
 
       setCurrentUser({
         firstName: result.user?.first_name || "",

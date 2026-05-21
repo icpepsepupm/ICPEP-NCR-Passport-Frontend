@@ -16,12 +16,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get user by username OR email (case-insensitive robust login)
-    const { data: userData, error: userError } = await supabase
+    const login = String(username).trim()
+
+    const { data: byUsername } = await supabase
       .from('users')
       .select('id, email, role, username, first_name, last_name, school_id, member_id')
-      .or(`username.ilike.${username},email.ilike.${username}`)
-      .single()
+      .ilike('username', login)
+      .maybeSingle()
+
+    let userData = byUsername
+    if (!userData) {
+      const { data: byEmail } = await supabase
+        .from('users')
+        .select('id, email, role, username, first_name, last_name, school_id, member_id')
+        .ilike('email', login)
+        .maybeSingle()
+      userData = byEmail
+    }
+
+    const userError = userData ? null : { message: 'User not found in DB' }
 
     if (userError || !userData) {
       console.error('User lookup error:', userError?.message || 'User not found in DB');
@@ -58,7 +71,8 @@ export async function POST(request: NextRequest) {
       },
       session: {
         access_token: data.session?.access_token,
-        expires_in: rememberMe ? 7 * 24 * 60 * 60 : 6 * 60 * 60, // 7 days or 6 hours
+        refresh_token: data.session?.refresh_token,
+        expires_in: rememberMe ? 7 * 24 * 60 * 60 : 6 * 60 * 60,
         remember_me: rememberMe,
       },
     })

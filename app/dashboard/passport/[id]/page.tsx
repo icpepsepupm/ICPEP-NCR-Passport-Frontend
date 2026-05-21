@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, useParams } from "next/navigation";
-import { clearCurrentUser, getDisplayName, BasicUser } from "@/app/lib/client-auth";
+import { getDisplayName, signOutAndClear, BasicUser } from "@/app/lib/client-auth";
 import Link from "next/link";
 import IcpepCoin from "@/app/components/three/IcpepCoin";
 import Modal from "@/app/components/ui/modal";
@@ -32,7 +32,7 @@ export default function PassportPage() {
       const data = result.data;
 
       if (data.role.toLowerCase() !== "member") {
-        clearCurrentUser();
+        await signOutAndClear();
         router.replace("/auth/login");
         return;
       }
@@ -126,7 +126,7 @@ export default function PassportPage() {
                 View Badges
               </Link>
             </div>
-            <button onClick={() => { clearCurrentUser(); router.push("/auth/login"); }} className="mt-2 text-xs underline-offset-4 hover:underline cursor-pointer" style={{ color: "var(--text-muted)" }}>
+            <button onClick={() => { void signOutAndClear().then(() => router.push("/auth/login")); }} className="mt-2 text-xs underline-offset-4 hover:underline cursor-pointer" style={{ color: "var(--text-muted)" }}>
               Log out
             </button>
           </div>

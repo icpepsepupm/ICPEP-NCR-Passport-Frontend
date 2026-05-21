@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getStoredUser, clearCurrentUser } from "@/app/lib/client-auth";
+import { getStoredUser, signOutAndClear } from "@/app/lib/client-auth";
 import { apiClient } from "@/lib/api/client";
 import { getErrorMessage } from "@/lib/api/errors";
 import type { ClientEvent } from "@/lib/api/mappers";
@@ -252,7 +252,7 @@ export default function ScannerClientPage() {
             </div>
           </div>
           <button
-            onClick={() => { clearCurrentUser(); router.push("/auth/login"); }}
+            onClick={() => { void signOutAndClear().then(() => router.push("/auth/login")); }}
             className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] hover:border-cyan-300/60 cursor-pointer"
             style={{ color: "var(--text-secondary)" }}
           >

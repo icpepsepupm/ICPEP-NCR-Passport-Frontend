@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
-import { requireAdmin } from '@/lib/api/server-auth'
+import { requireAdmin, requireSelfOrAdmin } from '@/lib/api/server-auth'
 import { mapClientUserToDb, mapDbUser } from '@/lib/api/mappers'
 import { adminQueries } from '@/lib/supabase/admin'
 
@@ -9,6 +9,9 @@ type RouteContext = { params: Promise<{ id: string }> }
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params
+    const auth = await requireSelfOrAdmin(id)
+    if (!auth.ok) return auth.response
+
     const supabase = await createServerSupabaseClient()
 
     const { data, error } = await supabase

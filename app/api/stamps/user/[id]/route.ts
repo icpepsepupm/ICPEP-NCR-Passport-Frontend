@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { mapDbStamp } from '@/lib/api/mappers'
+import { resolveMemberUserId } from '@/lib/api/member-resolve'
+import { requireSelfOrAdmin } from '@/lib/api/server-auth'
 
 type RouteContext = { params: Promise<{ id: string }> }
 
@@ -8,11 +10,19 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const { id } = await context.params
     const supabase = await createServerSupabaseClient()
+    const memberUuid = await resolveMemberUserId(supabase, id)
+
+    if (!memberUuid) {
+      return NextResponse.json({ success: true, data: [] })
+    }
+
+    const auth = await requireSelfOrAdmin(memberUuid)
+    if (!auth.ok) return auth.response
 
     const { data: passport, error: passportError } = await supabase
       .from('passports')
       .select('id')
-      .eq('member_id', id)
+      .eq('member_id', memberUuid)
       .maybeSingle()
 
     if (passportError) {

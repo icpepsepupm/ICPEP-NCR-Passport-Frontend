@@ -23,6 +23,7 @@ export const adminQueries = {
       role: 'ADMIN' | 'SCANNER' | 'MEMBER'
       school_id?: number
       member_id?: string
+      ecertificate_url?: string
     }
   ) {
     const admin = createAdminClient()

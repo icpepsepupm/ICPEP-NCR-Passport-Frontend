@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
       role,
       schoolId,
       memberId,
+      ecertificateUrl,
+      certificateUrl,
     } = body
 
     if (!firstName || !lastName || !password || !role) {
@@ -72,6 +74,8 @@ export async function POST(request: NextRequest) {
     const resolvedEmail =
       email || `${(username || memberId || `user-${Date.now()}`).toString()}@icpep.local`
 
+    const certUrl = ecertificateUrl ?? certificateUrl
+
     const { data, error } = await adminQueries.createUserWithAuth(
       resolvedEmail,
       password,
@@ -80,8 +84,9 @@ export async function POST(request: NextRequest) {
         last_name: lastName,
         username,
         role,
-        school_id: schoolId,
+        school_id: schoolId != null ? Number(schoolId) : undefined,
         member_id: memberId,
+        ecertificate_url: certUrl,
       }
     )
 

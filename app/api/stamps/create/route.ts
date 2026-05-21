@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAuth } from '@/lib/api/server-auth'
+import { resolveMemberUserId } from '@/lib/api/member-resolve'
 
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(['SCANNER', 'ADMIN'])
@@ -16,13 +17,8 @@ export async function POST(request: NextRequest) {
     let resolvedPassportId = passportId
 
     if (!resolvedPassportId && memberId) {
-      const { data: userRow } = await auth.admin
-        .from('users')
-        .select('id')
-        .or(`id.eq.${memberId},member_id.eq.${memberId},username.eq.${memberId}`)
-        .maybeSingle()
-
-      const memberUuid = userRow?.id ?? memberId
+      const memberUuid =
+        (await resolveMemberUserId(auth.admin, String(memberId))) ?? String(memberId)
 
       const { data: passport } = await auth.admin
         .from('passports')

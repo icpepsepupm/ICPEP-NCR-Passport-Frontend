@@ -101,6 +101,7 @@ export function mapClientUserToDb(body: Record<string, unknown>) {
   if (body.schoolId !== undefined) mapped.school_id = body.schoolId
   if (body.memberId !== undefined) mapped.member_id = body.memberId
   if (body.ecertificateUrl !== undefined) mapped.ecertificate_url = body.ecertificateUrl
+  if (body.certificateUrl !== undefined) mapped.ecertificate_url = body.certificateUrl
   if (body.status !== undefined) {
     mapped.is_active = body.status === 'APPROVED'
   }

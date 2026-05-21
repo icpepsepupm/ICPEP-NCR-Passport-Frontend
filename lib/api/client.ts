@@ -3,11 +3,14 @@ import { ApiError } from '@/lib/api/errors'
 
 const API_BASE = '/api'
 const DEFAULT_TIMEOUT_MS = 30_000
+const MAX_RETRIES = 2
+const RETRYABLE_STATUSES = new Set([408, 429, 502, 503, 504])
 
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
   token?: string
   timeout?: number
   body?: unknown
+  retries?: number
 }
 
 async function parseResponseBody(response: Response): Promise<unknown> {
@@ -29,11 +32,26 @@ function normalizeError(status: number, body: unknown): ApiError {
   return new ApiError(message, status, code)
 }
 
+function shouldRetry(error: unknown, attempt: number, maxRetries: number): boolean {
+  if (attempt >= maxRetries) return false
+  if (error instanceof ApiError) {
+    return error.status === 0 || RETRYABLE_STATUSES.has(error.status)
+  }
+  return true
+}
+
 async function fetchWithConfig<T = unknown>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const { token, timeout = DEFAULT_TIMEOUT_MS, body, headers: customHeaders, ...rest } = options
+  const {
+    token,
+    timeout = DEFAULT_TIMEOUT_MS,
+    body,
+    headers: customHeaders,
+    retries = MAX_RETRIES,
+    ...rest
+  } = options
 
   const headers = new Headers(customHeaders)
   if (!headers.has('Content-Type') && body !== undefined) {
@@ -46,45 +64,65 @@ async function fetchWithConfig<T = unknown>(
   }
 
   const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-  try {
-    const response = await fetch(`${API_BASE}${normalizedEndpoint}`, {
-      ...rest,
-      headers,
-      credentials: 'include',
-      signal: controller.signal,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    })
+  let lastError: unknown
 
-    const data = await parseResponseBody(response)
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController()
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
 
-    if (response.status === 401 && typeof window !== 'undefined') {
-      const path = window.location.pathname
-      if (!path.startsWith('/auth') && !path.startsWith('/login')) {
-        window.location.href = '/auth/login'
+    try {
+      timeoutId = setTimeout(() => controller.abort(), timeout)
+      const response = await fetch(`${API_BASE}${normalizedEndpoint}`, {
+        ...rest,
+        headers,
+        credentials: 'include',
+        signal: controller.signal,
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      })
+
+      const data = await parseResponseBody(response)
+
+      if (response.status === 401 && typeof window !== 'undefined') {
+        const path = window.location.pathname
+        if (!path.startsWith('/auth') && !path.startsWith('/login')) {
+          window.location.href = '/auth/login'
+        }
       }
-    }
 
-    if (!response.ok) {
-      throw normalizeError(response.status, data)
-    }
+      if (!response.ok) {
+        throw normalizeError(response.status, data)
+      }
 
-    return data as T
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new ApiError('Request timed out', 408, 'TIMEOUT')
+      return data as T
+    } catch (error) {
+      lastError = error
+      if (error instanceof ApiError) {
+        if (!shouldRetry(error, attempt, retries)) throw error
+      } else if (error instanceof DOMException && error.name === 'AbortError') {
+        const timeoutError = new ApiError('Request timed out', 408, 'TIMEOUT')
+        if (!shouldRetry(timeoutError, attempt, retries)) throw timeoutError
+        lastError = timeoutError
+      } else if (!shouldRetry(error, attempt, retries)) {
+        throw new ApiError(
+          error instanceof Error ? error.message : 'Network error',
+          0,
+          'NETWORK'
+        )
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)))
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId)
     }
-    throw new ApiError(
-      error instanceof Error ? error.message : 'Network error',
-      0,
-      'NETWORK'
-    )
-  } finally {
-    clearTimeout(timeoutId)
   }
+
+  if (lastError instanceof ApiError) throw lastError
+  throw new ApiError(
+    lastError instanceof Error ? lastError.message : 'Network error',
+    0,
+    'NETWORK'
+  )
 }
 
 export const apiClient = {

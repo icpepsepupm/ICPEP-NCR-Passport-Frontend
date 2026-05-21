@@ -5,7 +5,7 @@ import { Search, Plus, X, Edit2, Trash2, Calendar, MapPin, FileText, AlertCircle
 import { useEvents } from "@/lib/hooks/useEvents";
 import type { ClientEvent } from "@/lib/api/mappers";
 import { getErrorMessage } from "@/lib/api/errors";
-import { clearCurrentUser } from "@/app/lib/client-auth";
+import { signOutAndClear } from "@/app/lib/client-auth";
 
 export default function EventsPage() {
   const [form, setForm] = useState<Partial<ClientEvent>>({});
@@ -103,7 +103,7 @@ export default function EventsPage() {
               <p className="text-[11px] mt-1" style={{ color: "var(--text-secondary)" }}>Manage organization events and activities</p>
             </div>
             <button
-              onClick={() => { clearCurrentUser(); window.location.href = "/auth/login"; }}
+              onClick={() => { void signOutAndClear().then(() => { window.location.href = "/auth/login"; }); }}
               className="h-8 px-3 text-[11px] rounded-md border border-cyan-400/40 hover:border-cyan-300/60 transition-all"
               style={{ color: "var(--text-secondary)" }}
             >

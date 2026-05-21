@@ -1,22 +1,48 @@
 import { NextResponse } from 'next/server'
+import { headers } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export type AuthResult =
-  | { ok: true; userId: string; role: string; supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>; admin: ReturnType<typeof createAdminClient> }
+  | {
+      ok: true
+      userId: string
+      role: string
+      supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>
+      admin: ReturnType<typeof createAdminClient>
+    }
   | { ok: false; response: NextResponse }
+
+async function getAuthenticatedUser(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>
+) {
+  const headersList = await headers()
+  const authHeader = headersList.get('authorization')
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7).trim()
+    if (token) {
+      const { data, error } = await supabase.auth.getUser(token)
+      if (!error && data.user) return data.user
+    }
+  }
+
+  const { data, error } = await supabase.auth.getUser()
+  if (error || !data.user) return null
+  return data.user
+}
 
 export async function requireAuth(allowedRoles?: string[]): Promise<AuthResult> {
   const supabase = await createServerSupabaseClient()
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  const user = await getAuthenticatedUser(supabase)
 
-  if (authError || !user) {
+  if (!user) {
     return {
       ok: false,
-      response: NextResponse.json({ error: 'Unauthorized', message: 'Please sign in' }, { status: 401 }),
+      response: NextResponse.json(
+        { error: 'Unauthorized', message: 'Please sign in' },
+        { status: 401 }
+      ),
     }
   }
 
@@ -37,7 +63,10 @@ export async function requireAuth(allowedRoles?: string[]): Promise<AuthResult> 
   if (allowedRoles && !allowedRoles.includes(role)) {
     return {
       ok: false,
-      response: NextResponse.json({ error: 'Forbidden', message: 'Insufficient permissions' }, { status: 403 }),
+      response: NextResponse.json(
+        { error: 'Forbidden', message: 'Insufficient permissions' },
+        { status: 403 }
+      ),
     }
   }
 
@@ -52,4 +81,22 @@ export async function requireAuth(allowedRoles?: string[]): Promise<AuthResult> 
 
 export async function requireAdmin(): Promise<AuthResult> {
   return requireAuth(['ADMIN'])
+}
+
+/** Authenticated user may access their own record; admins may access any. */
+export async function requireSelfOrAdmin(targetUserId: string): Promise<AuthResult> {
+  const auth = await requireAuth(['ADMIN', 'SCANNER', 'MEMBER'])
+  if (!auth.ok) return auth
+
+  if (auth.role === 'ADMIN' || auth.userId === targetUserId) {
+    return auth
+  }
+
+  return {
+    ok: false,
+    response: NextResponse.json(
+      { error: 'Forbidden', message: 'Insufficient permissions' },
+      { status: 403 }
+    ),
+  }
 }
