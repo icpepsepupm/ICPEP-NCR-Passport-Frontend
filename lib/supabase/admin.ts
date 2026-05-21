@@ -3,15 +3,13 @@
 import { createClient } from '@supabase/supabase-js'
 import { idGenerator } from '@/lib/utils/id-generator'
 
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured')
+export const createAdminClient = () => {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY not configured')
+  }
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey)
 }
-
-export const createAdminClient = () =>
-  createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
 
 export const adminQueries = {
   // Create user with auth + profile

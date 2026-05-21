@@ -1,53 +1,105 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
+import { getAuthToken } from '@/app/lib/client-auth'
+import { ApiError } from '@/lib/api/errors'
 
-interface RequestOptions extends RequestInit {
-  token?: string;
+const API_BASE = '/api'
+const DEFAULT_TIMEOUT_MS = 30_000
+
+export interface RequestOptions extends Omit<RequestInit, 'body'> {
+  token?: string
+  timeout?: number
+  body?: unknown
 }
 
-async function fetchWithConfig(endpoint: string, options: RequestOptions = {}) {
-  const { token, headers: customHeaders, ...restOptions } = options;
-  
-  const headers = new Headers(customHeaders);
-  
-  // Default to JSON if not explicitly overridden
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
+async function parseResponseBody(response: Response): Promise<unknown> {
+  const contentType = response.headers.get('content-type')
+  if (contentType?.includes('application/json')) {
+    return response.json()
   }
-  
-  // Attach Bearer token if provided
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+  const text = await response.text()
+  return text ? { message: text } : {}
+}
+
+function normalizeError(status: number, body: unknown): ApiError {
+  const data = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>
+  const message =
+    (data.message as string) ||
+    (data.error as string) ||
+    `Request failed (${status})`
+  const code = (data.error as string) || undefined
+  return new ApiError(message, status, code)
+}
+
+async function fetchWithConfig<T = unknown>(
+  endpoint: string,
+  options: RequestOptions = {}
+): Promise<T> {
+  const { token, timeout = DEFAULT_TIMEOUT_MS, body, headers: customHeaders, ...rest } = options
+
+  const headers = new Headers(customHeaders)
+  if (!headers.has('Content-Type') && body !== undefined) {
+    headers.set('Content-Type', 'application/json')
   }
 
-  // Ensure endpoint starts with a slash
-  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const authToken = token ?? getAuthToken()
+  if (authToken) {
+    headers.set('Authorization', `Bearer ${authToken}`)
+  }
+
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
 
   try {
-    const response = await fetch(`${API_BASE_URL}${normalizedEndpoint}`, {
-      ...restOptions,
+    const response = await fetch(`${API_BASE}${normalizedEndpoint}`, {
+      ...rest,
       headers,
-    });
+      credentials: 'include',
+      signal: controller.signal,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    })
 
-    const data = await response.json();
+    const data = await parseResponseBody(response)
 
-    if (!response.ok) {
-      throw new Error(data.error || 'An error occurred during the API request');
+    if (response.status === 401 && typeof window !== 'undefined') {
+      const path = window.location.pathname
+      if (!path.startsWith('/auth') && !path.startsWith('/login')) {
+        window.location.href = '/auth/login'
+      }
     }
 
-    return data;
-  } catch (error: any) {
-    console.error(`[API Error] ${options.method || 'GET'} ${normalizedEndpoint}:`, error);
-    throw error;
+    if (!response.ok) {
+      throw normalizeError(response.status, data)
+    }
+
+    return data as T
+  } catch (error) {
+    if (error instanceof ApiError) throw error
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new ApiError('Request timed out', 408, 'TIMEOUT')
+    }
+    throw new ApiError(
+      error instanceof Error ? error.message : 'Network error',
+      0,
+      'NETWORK'
+    )
+  } finally {
+    clearTimeout(timeoutId)
   }
 }
 
 export const apiClient = {
-  get: (endpoint: string, token?: string) => 
-    fetchWithConfig(endpoint, { method: 'GET', token }),
-    
-  post: (endpoint: string, body: any, token?: string) => 
-    fetchWithConfig(endpoint, { method: 'POST', body: JSON.stringify(body), token }),
-    
-  delete: (endpoint: string, token?: string) => 
-    fetchWithConfig(endpoint, { method: 'DELETE', token }),
-};
+  get: <T = unknown>(endpoint: string, options?: Omit<RequestOptions, 'body' | 'method'>) =>
+    fetchWithConfig<T>(endpoint, { ...options, method: 'GET' }),
+
+  post: <T = unknown>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'body' | 'method'>) =>
+    fetchWithConfig<T>(endpoint, { ...options, method: 'POST', body }),
+
+  put: <T = unknown>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'body' | 'method'>) =>
+    fetchWithConfig<T>(endpoint, { ...options, method: 'PUT', body }),
+
+  patch: <T = unknown>(endpoint: string, body?: unknown, options?: Omit<RequestOptions, 'body' | 'method'>) =>
+    fetchWithConfig<T>(endpoint, { ...options, method: 'PATCH', body }),
+
+  delete: <T = unknown>(endpoint: string, options?: Omit<RequestOptions, 'body' | 'method'>) =>
+    fetchWithConfig<T>(endpoint, { ...options, method: 'DELETE' }),
+}

@@ -4,14 +4,15 @@ import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 interface MemberUser {
-    id: number;
-    username: string;
-    firstName: string;
-    lastName: string;
-    age?: number;
+    id: string;
+    username?: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    age?: number | null;
     role: string;
-    schoolId?: number;
+    schoolId?: number | null;
     password?: string;
+    ecertificateUrl?: string | null;
     certificateUrl?: string;
 }
 
@@ -37,7 +38,7 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
         role: user.role,
         schoolId: user.schoolId,
         password: "",
-        certificateUrl: user.certificateUrl || "",
+        certificateUrl: user.ecertificateUrl || user.certificateUrl || "",
     });
 
     // Ensure schoolId defaults to first school if missing

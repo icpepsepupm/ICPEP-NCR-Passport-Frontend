@@ -1,7 +1,7 @@
 const KEY = "icpep-user";
 
 export type BasicUser = {
-  id?: number;
+  id?: string | number;
   username?: string;
   firstName: string;
   lastName: string;
@@ -14,20 +14,22 @@ export type BasicUser = {
   token?: string; // ADD THIS LINE
 };
 
-// Get current user (returns null if no user)
-export async function getCurrentUser(): Promise<BasicUser | null> {
+// Synchronous read for client components (localStorage only)
+export function getStoredUser(): BasicUser | null {
   if (typeof window === "undefined") return null;
 
   try {
-    // Remove any token usage; rely only on stored user
     const rawUser = localStorage.getItem(KEY);
     if (!rawUser) return null;
-
-    const user = JSON.parse(rawUser) as BasicUser;
-    return user;
+    return JSON.parse(rawUser) as BasicUser;
   } catch {
     return null;
   }
+}
+
+// Get current user (returns null if no user)
+export async function getCurrentUser(): Promise<BasicUser | null> {
+  return getStoredUser();
 }
 
 // Set user info (in-memory + localStorage)

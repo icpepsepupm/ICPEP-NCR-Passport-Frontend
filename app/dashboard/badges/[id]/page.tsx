@@ -3,6 +3,9 @@
 import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import Modal from "@/app/components/ui/modal";
+import { apiClient } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/api/errors";
+import type { ClientStamp, ClientUser } from "@/lib/api/mappers";
 
 type Badge = {
   id: string;
@@ -14,14 +17,7 @@ type Badge = {
   venue?: string;
 };
 
-type StampDto = {
-  id: number;
-  stampDate: string;
-  eventName: string;
-  eventSchedule: string;
-  eventVenue: string;
-  eventType: "GENERAL_ASSEMBLY" | "COMPETITION" | "WEBINAR" | "OTHERS";
-};
+type StampDto = ClientStamp;
 
 type School = {
   id: number;
@@ -29,15 +25,7 @@ type School = {
   code: string;
 };
 
-type User = {
-  id: number;
-  firstName: string;
-  lastName: string;
-  username: string;
-  role: string;
-  schoolId?: number;
-  memberId?: string;
-};
+type User = ClientUser & { school?: School | null };
 
 const EVENT_STYLES = {
   GENERAL_ASSEMBLY: {
@@ -79,42 +67,31 @@ export default function BadgesPage() {
   const [selected, setSelected] = React.useState<Badge | null>(null);
   const [stamps, setStamps] = React.useState<StampDto[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
+  const fetchData = React.useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const userResult = await apiClient.get<{ data: User }>(`/users/${id}`);
+      const userData = userResult.data;
+      setUser(userData);
+      setSchool(userData.school ?? null);
+
+      const stampsResult = await apiClient.get<{ data: StampDto[] }>(`/stamps/user/${id}`);
+      setStamps(stampsResult.data ?? []);
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setStamps([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
   React.useEffect(() => {
-    if (!id) return;
-
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const userRes = await fetch(`${API_BASE_URL}/users/${id}`);
-        if (!userRes.ok) throw new Error("Failed to fetch user");
-        const userData: User = await userRes.json();
-        setUser(userData);
-
-        if (userData.schoolId) {
-          const schoolRes = await fetch(`${API_BASE_URL}/schools/${userData.schoolId}`);
-          if (schoolRes.ok) {
-            const schoolData: School = await schoolRes.json();
-            setSchool(schoolData);
-          }
-        }
-
-        const stampsRes = await fetch(`${API_BASE_URL}/stamps/user/${id}`);
-        if (!stampsRes.ok) throw new Error("Failed to fetch stamps");
-        const stampsData: StampDto[] = await stampsRes.json();
-        setStamps(stampsData);
-      } catch (error) {
-        console.error(error);
-        setStamps([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [id, API_BASE_URL]);
+    void fetchData();
+  }, [fetchData]);
 
   const allBadges = React.useMemo(() => {
     return stamps.map((stamp): Badge => ({
@@ -189,6 +166,15 @@ export default function BadgesPage() {
           <div className="w-12 h-12 mx-auto mb-4 rounded-full border-4 border-cyan-400/20 border-t-cyan-400 animate-spin"></div>
           <p style={{ color: "var(--text-secondary)" }}>Loading badges...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-dvh flex flex-col items-center justify-center gap-4" style={{ background: "var(--background)" }}>
+        <p className="text-red-400">{error}</p>
+        <button onClick={() => void fetchData()} className="rounded-md bg-cyan-400 px-4 py-2 text-sm font-semibold text-black">Retry</button>
       </div>
     );
   }

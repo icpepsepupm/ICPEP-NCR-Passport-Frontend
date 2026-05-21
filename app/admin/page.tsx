@@ -40,7 +40,7 @@ export default function AdminPage() {
 
       {/* ✅ Main Container */}
       <div className="relative mx-auto max-w-7xl px-6 py-20">
-        <AdminHeader name="Admin" backendAvailable={true} />
+        <AdminHeader name="Admin" />
 
         {/* ✅ Tabs */}
         <div

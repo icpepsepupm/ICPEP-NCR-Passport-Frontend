@@ -4,10 +4,11 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import Input from "@/app/components/ui/input";
 import Button from "@/app/components/ui/button";
-import { setCurrentUser } from "@/app/lib/client-auth";
+import { setCurrentUser, type BasicUser } from "@/app/lib/client-auth";
 import { apiClient } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/errors";
 
-export default function AuthForm() {
+export default function AuthForm({ mode = "login" }: { mode?: "login" | "signup" }) {
   const router = useRouter();
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -39,16 +40,33 @@ export default function AuthForm() {
     const username = String(fd.get("username") || "").trim();
     const password = String(fd.get("password") || "");
 
+    if (!username || !password) {
+      setError("Username and password are required.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const result = await apiClient.post("/auth/signin", { username, password });
+      const result = await apiClient.post<{
+        user?: {
+          id: string;
+          username: string;
+          role: string;
+          first_name: string;
+          last_name: string;
+          school_id: number | null;
+          member_id: string | null;
+        };
+        session?: { access_token?: string };
+      }>("/auth/signin", { username, password });
 
       setCurrentUser({
         firstName: result.user?.first_name || "",
         lastName: result.user?.last_name || "",
         username: result.user?.username,
-        school: result.user?.school_id || null,
-        role: result.user?.role,
-        memberId: result.user?.member_id || null,
+        school: result.user?.school_id != null ? String(result.user.school_id) : undefined,
+        role: result.user?.role?.toLowerCase() as BasicUser["role"],
+        memberId: result.user?.member_id ?? "",
         id: result.user?.id,
         token: result.session?.access_token,
       });
@@ -69,10 +87,25 @@ export default function AuthForm() {
           break;
       }
 
-    } catch (err: any) {
-      setError(err.message || "An error occurred. Please try again.");
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        if (err.status === 401) setError("Invalid username or password.");
+        else if (err.status === 400) setError(err.message);
+        else if (err.status >= 500) setError("Server error. Please try again later.");
+        else setError(err.message);
+      } else {
+        setError("Unable to sign in. Check your connection and try again.");
+      }
       setLoading(false);
     }
+  }
+
+  if (mode === "signup") {
+    return (
+      <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+        Account registration is managed by administrators. Please contact your chapter officer.
+      </p>
+    );
   }
 
   return (

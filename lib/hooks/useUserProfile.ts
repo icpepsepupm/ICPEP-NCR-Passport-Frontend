@@ -21,7 +21,7 @@ export function useUserProfile() {
     const fetchProfile = async () => {
       try {
         setLoading(true)
-        const result = await apiClient.get('/user/profile')
+        const result = await apiClient.get<{ data: unknown }>('/user/profile')
         setProfile(result.data)
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch profile'))

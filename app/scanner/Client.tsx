@@ -3,53 +3,54 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getCurrentUser } from "@/app/lib/client-auth";
-import eventsSeed from "@/app/data/events.json";
+import { getStoredUser, clearCurrentUser } from "@/app/lib/client-auth";
+import { apiClient } from "@/lib/api/client";
+import { getErrorMessage } from "@/lib/api/errors";
+import type { ClientEvent } from "@/lib/api/mappers";
 
-type Log = { time: string; memberId: string; eventId: number; result: "success" | "duplicate" };
-
-type AdminEvent = { id: number; title: string; date: string; location: string; attendees: number; badgeEmoji?: string; details?: string };
+type Log = { time: string; memberId: string; eventId: number; result: "success" | "duplicate" | "error" };
 
 export default function ScannerClientPage() {
   const router = useRouter();
-  const [selected, setSelected] = React.useState<number | "" | null>("");
+  const [selected, setSelected] = React.useState<number | "">("");
   const [status, setStatus] = React.useState<string>("Camera idle");
   const [scanned, setScanned] = React.useState<string | null>(null);
   const [logs, setLogs] = React.useState<Log[]>([]);
   const [memberInput, setMemberInput] = React.useState("");
+  const [events, setEvents] = React.useState<ClientEvent[]>([]);
+  const [eventsLoading, setEventsLoading] = React.useState(true);
+  const [eventsError, setEventsError] = React.useState<string | null>(null);
+  const [scanning, setScanning] = React.useState(false);
 
-  const [events, setEvents] = React.useState<AdminEvent[]>([]);
-  const eventsKey = "icpep-events";
-  const attendanceKey = "icpep-attendance";
-
-  // Load events from localStorage or seed
-  React.useEffect(() => {
-    try {
-      const raw = typeof window !== "undefined" ? window.localStorage.getItem(eventsKey) : null;
-      if (raw) {
-        setEvents(JSON.parse(raw) as AdminEvent[]);
-        return;
-      }
-    } catch {}
-    setEvents(eventsSeed as AdminEvent[]);
-  }, []);
-
-  // Camera state
   const videoRef = React.useRef<HTMLVideoElement | null>(null);
   const [stream, setStream] = React.useState<MediaStream | null>(null);
-  const [camState, setCamState] = React.useState<
-    "idle" | "requesting" | "granted" | "denied" | "error"
-  >("idle");
+  const [camState, setCamState] = React.useState<"idle" | "requesting" | "granted" | "denied" | "error">("idle");
   const [camError, setCamError] = React.useState<string | null>(null);
   const lastScanRef = React.useRef<string | null>(null);
   const scanningRef = React.useRef(false);
 
-  const user = getCurrentUser();
-
-  const isScanner = user?.role === "scanner";
-
+  const user = getStoredUser();
+  const isScanner = user?.role === "scanner" || user?.role === "admin";
   const isSecure = typeof window !== "undefined" ? (window.isSecureContext || window.location.hostname === "localhost") : true;
   const autoReqRef = React.useRef(false);
+
+  const loadEvents = React.useCallback(async () => {
+    setEventsLoading(true);
+    setEventsError(null);
+    try {
+      const result = await apiClient.get<{ data: ClientEvent[] }>("/events?filter=upcoming");
+      setEvents(result.data ?? []);
+    } catch (err) {
+      setEventsError(getErrorMessage(err));
+      setEvents([]);
+    } finally {
+      setEventsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadEvents();
+  }, [loadEvents]);
 
   const requestCamera = React.useCallback(async () => {
     if (!isSecure) {
@@ -71,7 +72,6 @@ export default function ScannerClientPage() {
       setCamState("granted");
       setStatus("Camera active");
     } catch (err: unknown) {
-      console.error("getUserMedia error", err);
       let message = "Unable to access camera.";
       if (err && typeof err === "object" && "name" in err) {
         const name = (err as DOMException).name ?? "Error";
@@ -97,10 +97,10 @@ export default function ScannerClientPage() {
   React.useEffect(() => {
     if (!videoRef.current) return;
     if (stream) {
-      (videoRef.current as HTMLVideoElement).srcObject = stream;
-      void (videoRef.current as HTMLVideoElement).play().catch(() => {});
+      videoRef.current.srcObject = stream;
+      void videoRef.current.play().catch(() => {});
     } else {
-      (videoRef.current as HTMLVideoElement).srcObject = null;
+      videoRef.current.srcObject = null;
     }
     return () => {
       if (stream) {
@@ -109,86 +109,85 @@ export default function ScannerClientPage() {
     };
   }, [stream]);
 
-  // Stable log helper (for recent activity list)
-  const log = React.useCallback((result: "success" | "duplicate") => {
-    const mem = user?.memberId ?? "ICPEP-XXXX-XXX";
-    const now = new Date();
-    const entry: Log = {
-      time: now.toLocaleTimeString(),
-      memberId: mem,
-      eventId: Number(selected) || 0,
-      result,
-    };
-    setLogs((prev) => [entry, ...prev].slice(0, 6));
-  }, [selected, user?.memberId]);
+  const log = React.useCallback((memberId: string, eventId: number, result: Log["result"]) => {
+    setLogs((prev) => [
+      { time: new Date().toLocaleTimeString(), memberId, eventId, result },
+      ...prev,
+    ].slice(0, 6));
+  }, []);
 
-  // Update attendee count on event and persist
-  const updateEventAttendeeCount = React.useCallback((eventId: number, count: number) => {
+  const processCheckIn = React.useCallback(async (memberId: string, eventId: number) => {
+    if (!memberId || !eventId) return;
+    setScanning(true);
     try {
-      const raw = localStorage.getItem(eventsKey);
-      const list: AdminEvent[] = raw ? JSON.parse(raw) : (eventsSeed as AdminEvent[]);
-      const updated = list.map((e) => (e.id === eventId ? { ...e, attendees: count } : e));
-      localStorage.setItem(eventsKey, JSON.stringify(updated));
-      setEvents(updated);
-    } catch {}
-  }, [eventsKey]);
+      const result = await apiClient.post<{ success: boolean; error?: string }>("/stamps/create", {
+        memberId,
+        eventId,
+      });
 
-  // Record attendance and update event counts
-  const grantAttendance = React.useCallback((memberId: string, eventId: number): "success" | "duplicate" => {
-    if (!memberId) return "duplicate";
-    try {
-      const raw = localStorage.getItem(attendanceKey);
-      const map: Record<string, string[]> = raw ? JSON.parse(raw) : {};
-      const key = String(eventId);
-      const set = new Set([...(map[key] ?? [])]);
-      if (set.has(memberId)) {
-        setScanned(memberId);
+      if (result.success) {
+        setStatus("Scan successful — badge granted.");
+        setScanned(null);
+        log(memberId, eventId, "success");
+        void loadEvents();
+      } else {
         setStatus("Duplicate scan — already granted for this event.");
-        return "duplicate";
+        setScanned(memberId);
+        log(memberId, eventId, "duplicate");
       }
-      set.add(memberId);
-      const arr = Array.from(set);
-      const next = { ...map, [key]: arr };
-      localStorage.setItem(attendanceKey, JSON.stringify(next));
-      updateEventAttendeeCount(eventId, arr.length);
-      setStatus("Scan successful — badge granted.");
-      setScanned(null);
-      return "success";
-    } catch {
-      setStatus("Error recording attendance");
-      return "duplicate";
+    } catch (err) {
+      const message = getErrorMessage(err);
+      if (message.toLowerCase().includes("already") || message.includes("409")) {
+        setStatus("Duplicate scan — already granted for this event.");
+        setScanned(memberId);
+        log(memberId, eventId, "duplicate");
+      } else {
+        setStatus(message);
+        log(memberId, eventId, "error");
+      }
+    } finally {
+      setScanning(false);
     }
-  }, [attendanceKey, updateEventAttendeeCount]);
+  }, [log, loadEvents]);
+
+  const parseMemberId = (raw: string): string => {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith("MEMBER_ID:")) {
+      return trimmed.replace("MEMBER_ID:", "").trim();
+    }
+    try {
+      const parsed = JSON.parse(trimmed) as { memberId?: string };
+      if (parsed.memberId) return parsed.memberId.toString().trim();
+    } catch {
+      // not JSON
+    }
+    return trimmed;
+  };
 
   const handleDecodedPayload = React.useCallback((raw: string) => {
-    try {
-      const parsed = JSON.parse(raw) as { memberId?: string; activityId?: string | number };
-      const memberId = (parsed.memberId ?? "").toString().trim();
-      const evId = parsed.activityId != null ? Number(parsed.activityId) : (selected ? Number(selected) : NaN);
-      if (!memberId) {
-        setStatus("QR missing memberId");
-        return;
-      }
-      if (!Number.isFinite(evId)) {
-        setStatus("QR missing activityId — select an event to use instead");
-        if (selected) {
-          const outcome = grantAttendance(memberId, Number(selected));
-          log(outcome);
-        }
-        return;
-      }
-      const exists = events.some((e) => e.id === evId);
-      const eventIdToUse = exists ? evId : (selected ? Number(selected) : NaN);
-      if (!Number.isFinite(eventIdToUse)) {
-        setStatus("Unknown event — select an event first");
-        return;
-      }
-      const outcome = grantAttendance(memberId, Number(eventIdToUse));
-      log(outcome);
-    } catch {
-      setStatus("Unrecognized QR content");
+    const memberId = parseMemberId(raw);
+    if (!memberId) {
+      setStatus("QR missing member ID");
+      return;
     }
-  }, [events, selected, grantAttendance, log]);
+
+    let eventId = selected ? Number(selected) : NaN;
+
+    try {
+      const parsed = JSON.parse(raw) as { activityId?: string | number; eventId?: string | number };
+      const fromQr = parsed.activityId ?? parsed.eventId;
+      if (fromQr != null) eventId = Number(fromQr);
+    } catch {
+      // plain member id format
+    }
+
+    if (!Number.isFinite(eventId)) {
+      setStatus("Select an event before scanning");
+      return;
+    }
+
+    void processCheckIn(memberId, eventId);
+  }, [selected, processCheckIn]);
 
   React.useEffect(() => {
     let raf = 0;
@@ -198,18 +197,19 @@ export default function ScannerClientPage() {
         return;
       }
       try {
-        // @ts-expect-error: BarcodeDetector is a newer web API
+        // @ts-expect-error BarcodeDetector is a newer web API
         const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
         const codes = await detector.detect(videoRef.current);
         if (codes && codes.length > 0) {
           const raw = codes[0].rawValue || codes[0].raw || "";
-          if (raw && raw !== lastScanRef.current) {
+          if (raw && raw !== lastScanRef.current && !scanning) {
             lastScanRef.current = raw;
             handleDecodedPayload(raw);
+            setTimeout(() => { lastScanRef.current = null; }, 3000);
           }
         }
       } catch {
-        // ignore detection errors; continue trying
+        // continue scanning
       }
       raf = window.requestAnimationFrame(tick);
     }
@@ -221,7 +221,7 @@ export default function ScannerClientPage() {
       if (raf) cancelAnimationFrame(raf);
       scanningRef.current = false;
     };
-  }, [camState, stream, handleDecodedPayload]);
+  }, [camState, stream, handleDecodedPayload, scanning]);
 
   React.useEffect(() => {
     if (isScanner && !autoReqRef.current && camState === "idle" && isSecure) {
@@ -230,45 +230,30 @@ export default function ScannerClientPage() {
     }
   }, [isScanner, camState, isSecure, requestCamera]);
 
-  function simulateScan(result: "success" | "duplicate") {
+  async function manualCheckIn() {
     if (!selected) return setStatus("Select an event first");
-    const mem = memberInput.trim() || user?.memberId || "ICPEP-XXXX-XXX";
-    const outcome = result === "success" ? grantAttendance(mem, Number(selected)) : "duplicate";
-    log(outcome);
+    const mem = memberInput.trim();
+    if (!mem) return setStatus("Enter a member ID");
+    await processCheckIn(mem, Number(selected));
   }
 
   return (
     <div className="relative min-h-dvh isolate overflow-hidden transition-colors duration-300" style={{ background: "var(--background)", color: "var(--foreground)" }}>
-      {/* soft glows */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-40 -top-40 h-96 w-96 rounded-full blur-3xl"
-        style={{ background: "radial-gradient(closest-side, rgba(34,211,238,0.25), transparent 70%)" }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -bottom-40 -right-40 h-[28rem] w-[28rem] rounded-full blur-3xl"
-        style={{ background: "radial-gradient(closest-side, rgba(34,211,238,0.18), transparent 70%)" }}
-      />
+      <div aria-hidden className="pointer-events-none absolute -left-40 -top-40 h-96 w-96 rounded-full blur-3xl" style={{ background: "radial-gradient(closest-side, rgba(34,211,238,0.25), transparent 70%)" }} />
+      <div aria-hidden className="pointer-events-none absolute -bottom-40 -right-40 h-[28rem] w-[28rem] rounded-full blur-3xl" style={{ background: "radial-gradient(closest-side, rgba(34,211,238,0.18), transparent 70%)" }} />
 
       <div className="relative mx-auto max-w-7xl px-6 py-6 mt-10">
-        {/* Header */}
         <header className="flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
             <Image src="/ICpEP.SE Logo.png" alt="logo" width={28} height={28} />
             <div>
               <div className="orbitron text-lg leading-none text-cyan-400">QR SCANNER</div>
-              <div className="text-[10px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>event check-in system</div>
+              <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>event check-in system</div>
             </div>
           </div>
           <button
-            onClick={() => {
-              try {
-                window.localStorage.removeItem("icpep-user");
-              } catch {}
-              router.push("/auth/login");
-            }}
-            className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95 cursor-pointer"
+            onClick={() => { clearCurrentUser(); router.push("/auth/login"); }}
+            className="h-8 rounded-md border border-cyan-400/40 px-3 text-[11px] hover:border-cyan-300/60 cursor-pointer"
             style={{ color: "var(--text-secondary)" }}
           >
             Log out
@@ -281,111 +266,50 @@ export default function ScannerClientPage() {
           </div>
         ) : null}
 
-        {/* Main grid */}
         <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-[1fr_340px]">
-          {/* Scanner panel */}
-          <div className="rounded-2xl border border-cyan-400/25 p-6 neon-panel animate-slide-up transition-all duration-300" style={{ background: "var(--card-bg)" }}>
+          <div className="rounded-2xl border border-cyan-400/25 p-6 neon-panel" style={{ background: "var(--card-bg)" }}>
             <div className="flex items-center justify-between">
               <h2 className="orbitron text-lg text-cyan-400">Scan QR Code</h2>
-              <div className="flex items-center gap-3">
-                {stream ? (
-                  <button
-                    onClick={stopCamera}
-                    className="h-8 rounded-md border border-cyan-400/40 px-2 text-[11px] transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95 cursor-pointer"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    Disable Camera
-                  </button>
-                ) : (
-                  <button
-                    onClick={requestCamera}
-                    className="h-8 rounded-md bg-cyan-400 px-2 text-[11px] font-semibold text-black orbitron transition-all duration-200 hover:bg-cyan-300 hover:scale-105 active:scale-95 cursor-pointer"
-                    disabled={camState === "requesting"}
-                  >
-                    {camState === "requesting" ? "Requesting…" : "Enable Camera"}
-                  </button>
-                )}
-                <div className="text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Status: {status}</div>
-              </div>
+              <div className="text-xs" style={{ color: "var(--text-secondary)" }}>Status: {scanning ? "Processing…" : status}</div>
             </div>
-            <p className="mb-4 mt-1 text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Point camera at member QR Code to check them in</p>
+            <p className="mb-4 mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>Point camera at member QR Code to check them in</p>
 
-            <div className="rounded-xl border border-cyan-400/25 p-6 transition-all duration-300" style={{ background: "var(--input-bg)" }}>
-              <div className="relative mx-auto h-[340px] max-w-[520px] overflow-hidden rounded-[20px] border-2 border-dashed border-cyan-400/30 bg-gradient-to-b from-cyan-400/5 to-transparent">
+            <div className="rounded-xl border border-cyan-400/25 p-6" style={{ background: "var(--input-bg)" }}>
+              <div className="relative mx-auto h-[340px] max-w-[520px] overflow-hidden rounded-[20px] border-2 border-dashed border-cyan-400/30">
                 {stream ? (
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="h-full w-full object-cover"
-                  />
+                  <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
                 ) : (
                   <div className="grid h-full place-content-center text-center">
                     <div className="text-5xl text-cyan-200/80">📷</div>
-                    <p className="mt-2 text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Camera is not enabled.</p>
-                    {!isSecure ? (
-                      <p className="mt-1 text-[11px] text-yellow-200/80">Use HTTPS or localhost to allow camera access.</p>
-                    ) : null}
-                    {camError ? (
-                      <p className="mt-1 text-[11px] text-yellow-200/80">{camError}</p>
-                    ) : null}
-                    {!("BarcodeDetector" in window) ? (
-                      <p className="mt-1 text-[11px] transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>This browser may not support live QR decoding. Use the Simulate buttons below or try a Chromium-based browser.</p>
-                    ) : null}
-                    <div className="mt-3">
-                      <button
-                        onClick={requestCamera}
-                        disabled={camState === "requesting"}
-                        className="h-9 rounded-md bg-cyan-400 px-3 text-sm font-semibold text-black orbitron transition-colors hover:bg-cyan-300 disabled:opacity-60 cursor-pointer"
-                      >
-                        {camState === "requesting" ? "Requesting…" : "Enable Camera"}
-                      </button>
-                    </div>
+                    <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>Camera is not enabled.</p>
+                    {camError && <p className="mt-1 text-[11px] text-yellow-200/80">{camError}</p>}
                   </div>
                 )}
-
-                {/* corner guides */}
-                <div className="pointer-events-none absolute inset-0">
-                  <div className="absolute left-3 top-3 h-8 w-8 border-l-4 border-t-4 border-cyan-400/60" />
-                  <div className="absolute right-3 top-3 h-8 w-8 border-r-4 border-t-4 border-cyan-400/60" />
-                  <div className="absolute bottom-3 left-3 h-8 w-8 border-b-4 border-l-4 border-cyan-400/60" />
-                  <div className="absolute bottom-3 right-3 h-8 w-8 border-b-4 border-r-4 border-cyan-400/60" />
-                </div>
               </div>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className="mt-5">
               <button
-                onClick={() => simulateScan("success")}
-                className="h-10 rounded-md bg-cyan-400 text-sm font-semibold text-black orbitron transition-all duration-200 hover:bg-cyan-300 hover:scale-105 active:scale-95 cursor-pointer"
+                onClick={manualCheckIn}
+                disabled={scanning || !selected}
+                className="h-10 w-full rounded-md bg-cyan-400 text-sm font-semibold text-black orbitron hover:bg-cyan-300 disabled:opacity-60 cursor-pointer"
               >
-                Simulate Successful Scan
-              </button>
-              <button
-                onClick={() => simulateScan("duplicate")}
-                className="h-10 rounded-md border border-cyan-400/40 text-sm transition-all duration-200 hover:border-cyan-300/60 hover:scale-105 active:scale-95 cursor-pointer"
-                style={{ color: "var(--text-secondary)" }}
-              >
-                Simulate Duplicate Scan
+                {scanning ? "Checking in…" : "Check In Member"}
               </button>
             </div>
 
-            {/* Recent logs */}
-            <div className="mt-6 rounded-xl border border-cyan-400/20 p-4 transition-all duration-300" style={{ background: "var(--input-bg)" }}>
+            <div className="mt-6 rounded-xl border border-cyan-400/20 p-4" style={{ background: "var(--input-bg)" }}>
               <div className="orbitron text-sm text-cyan-400">Recent Activity</div>
               {logs.length === 0 ? (
-                <p className="mt-2 text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>No scans yet.</p>
+                <p className="mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>No scans yet.</p>
               ) : (
                 <ul className="mt-2 space-y-1 text-xs">
                   {logs.map((l, i) => (
-                    <li key={i} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2 transition-all duration-300" style={{ background: "var(--input-bg)" }}>
-                      <span className="transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{l.time}</span>
-                      <span className="transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Event #{l.eventId}</span>
-                      <span className="transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>{l.memberId}</span>
-                      <span className={l.result === "success" ? "text-emerald-300" : "text-yellow-300"}>
-                        {l.result === "success" ? "granted" : "duplicate"}
-                      </span>
+                    <li key={i} className="flex items-center justify-between rounded-md border border-cyan-400/10 px-3 py-2">
+                      <span style={{ color: "var(--text-secondary)" }}>{l.time}</span>
+                      <span style={{ color: "var(--text-secondary)" }}>#{l.eventId}</span>
+                      <span style={{ color: "var(--text-secondary)" }}>{l.memberId}</span>
+                      <span className={l.result === "success" ? "text-emerald-300" : l.result === "duplicate" ? "text-yellow-300" : "text-red-300"}>{l.result}</span>
                     </li>
                   ))}
                 </ul>
@@ -393,50 +317,41 @@ export default function ScannerClientPage() {
             </div>
           </div>
 
-          {/* Side panels */}
-          <aside className="space-y-6 animate-fade-in stagger-2 mt-8 md:mt-0">
-            <div className="rounded-2xl border border-cyan-400/25 p-4 neon-panel transition-all duration-300" style={{ background: "var(--card-bg)" }}>
+          <aside className="space-y-6 mt-8 md:mt-0">
+            <div className="rounded-2xl border border-cyan-400/25 p-4 neon-panel" style={{ background: "var(--card-bg)" }}>
               <div className="orbitron text-sm text-cyan-400">Select Event</div>
-              <div className="mt-2 flex items-center gap-2">
-                <select
-                  value={selected ?? ""}
-                  onChange={(e) => setSelected(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="h-10 w-full rounded-md border border-cyan-400/40 px-3 text-sm outline-none transition-all duration-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30 cursor-pointer"
-                  style={{
-                    backgroundColor: "var(--input-bg)",
-                    color: "var(--input-text)",
-                  }}
-                >
-                  <option value="">Choose an event</option>
-                  {events.map((ev) => (
-                    <option key={ev.id} value={ev.id}>
-                      {ev.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {eventsError && <p className="mt-2 text-xs text-red-300">{eventsError}</p>}
+              <select
+                value={selected ?? ""}
+                onChange={(e) => setSelected(e.target.value === "" ? "" : Number(e.target.value))}
+                disabled={eventsLoading}
+                className="mt-2 h-10 w-full rounded-md border border-cyan-400/40 px-3 text-sm outline-none cursor-pointer"
+                style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }}
+              >
+                <option value="">{eventsLoading ? "Loading events…" : "Choose an event"}</option>
+                {events.map((ev) => (
+                  <option key={ev.id} value={ev.id}>{ev.name}</option>
+                ))}
+              </select>
+              {!eventsLoading && events.length === 0 && (
+                <p className="mt-2 text-[11px]" style={{ color: "var(--text-muted)" }}>No upcoming events available.</p>
+              )}
               <div className="mt-3">
-                <label className="mb-1 block text-xs transition-colors duration-300" style={{ color: "var(--text-secondary)" }}>Member ID to simulate</label>
+                <label className="mb-1 block text-xs" style={{ color: "var(--text-secondary)" }}>Member ID (manual check-in)</label>
                 <input
                   value={memberInput}
                   onChange={(e) => setMemberInput(e.target.value)}
-                  placeholder="e.g. IC-2025-0001"
-                  className="h-10 w-full rounded-md border border-cyan-400/40 px-3 text-sm outline-none placeholder:text-cyan-200/50 transition-all duration-200 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/30"
-                  style={{
-                    backgroundColor: "var(--input-bg)",
-                    color: "var(--input-text)",
-                  }}
+                  placeholder="e.g. ICPEPSE-NCR-DPS-A7K9M2"
+                  className="h-10 w-full rounded-md border border-cyan-400/40 px-3 text-sm outline-none"
+                  style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }}
                 />
-                <p className="mt-1 text-[11px] transition-colors duration-300" style={{ color: "var(--text-muted)" }}>Used by the simulate buttons when testing.</p>
               </div>
             </div>
 
             <div className="rounded-2xl border border-yellow-400/30 bg-yellow-100 dark:bg-yellow-900/20 p-4">
               <div className="orbitron text-sm text-black dark:text-yellow-300">Already scanned</div>
               <p className="mt-1 text-xs text-black dark:text-yellow-300">
-                {scanned
-                  ? `Member ${scanned} has already scanned this event`
-                  : "No duplicate scans in this session."}
+                {scanned ? `Member ${scanned} has already scanned this event` : "No duplicate scans in this session."}
               </p>
             </div>
           </aside>

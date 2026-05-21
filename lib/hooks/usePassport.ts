@@ -21,7 +21,7 @@ export function usePassport() {
     const fetchPassport = async () => {
       try {
         setLoading(true)
-        const result = await apiClient.get('/passport')
+        const result = await apiClient.get<{ data: unknown }>('/passport')
         setPassport(result.data)
       } catch (err) {
         // Passport might not exist yet, which is fine

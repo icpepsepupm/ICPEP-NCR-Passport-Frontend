@@ -38,9 +38,9 @@ Your ICPEP NCR Passport System has been **completely migrated** from Spring Boot
 ### 4. Frontend Integration ✅
 - **React hooks** (useAuth, useUserProfile, useEvents, usePassport)
 - **Auth middleware** for route protection
-- **Direct Supabase queries** support
-- **Minimal API overhead** design
-- Location: `lib/hooks/`, `middleware.ts`
+- **Strict API route usage** (no direct database queries from frontend)
+- **Centralized API client** integration
+- Location: `hooks/`, `lib/api/`, `middleware.ts`
 
 ### 5. Documentation ✅
 - **Architecture guide** (SUPABASE_MIGRATION.md) - 30 pages

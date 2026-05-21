@@ -7,7 +7,7 @@ This project has been completely migrated from Spring Boot to a **Supabase-nativ
 - **Supabase PostgreSQL** for data storage and business logic
 - **Supabase Auth** for user authentication and session management
 - **Supabase Storage** for file management (QR codes, certificates, images)
-- **Next.js** as a frontend + minimal BFF layer (optional API routes)
+- **Next.js** as a frontend + strict API route abstraction layer
 - **Row Level Security (RLS)** for authorization at the database level
 
 ---
@@ -18,14 +18,18 @@ This project has been completely migrated from Spring Boot to a **Supabase-nativ
 ┌─────────────────────────────────────────┐
 │      Next.js Frontend                   │
 │  (ICPEP-NCR-Passport-Frontend)         │
+└──────────────▼──────────────────────────┘
+               │
+               └─ Centralized API Client
+                  (/lib/api/client)
+               │
+               ▼
+┌─────────────────────────────────────────┐
+│      Next.js Route Handlers             │
+│      (/app/api/*)                       │
+│  - All data fetching and mutations      │
+│  - Auth checks & business logic         │
 └──────────────┬──────────────────────────┘
-               │
-               ├─ Supabase Client SDK (direct queries)
-               │
-               └─ Next.js Route Handlers (minimal)
-                  - QR generation
-                  - Admin imports
-                  - Reporting
 
                ↓
 
@@ -175,7 +179,7 @@ function MyComponent() {
 
 ---
 
-## API Routes (Minimal)
+## API Routes (Centralized Layer)
 
 ### QR Code Generation
 **POST** `/api/qr/generate`
@@ -227,40 +231,20 @@ function MyComponent() {
 
 ## Data Access Patterns
 
-### 1. Direct Supabase Queries (Recommended)
+### 1. Next.js API Routes (Required)
 
-**In Client Components:**
-```typescript
-'use client'
-
-import { createClient } from '@/lib/supabase/client'
-
-export function EventList() {
-  const supabase = createClient()
-  const [events, setEvents] = useState([])
-
-  useEffect(() => {
-    supabase
-      .from('events')
-      .select('*')
-      .then(({ data }) => setEvents(data || []))
-  }, [])
-
-  return (
-    <ul>
-      {events.map(e => <li key={e.id}>{e.name}</li>)}
-    </ul>
-  )
-}
-```
+All frontend data fetching must go through the centralized Next.js API layer.
+Direct database queries (Supabase SDK) from frontend components are strictly prohibited to enforce a clean separation of concerns and maintain security.
 
 ### 2. Utility Functions
 
-**Using Pre-built Queries:**
+**Using Centralized API Client:**
 ```typescript
-import { eventQueries } from '@/lib/supabase/events'
+import { apiClient } from '@/lib/api/client'
 
-const { data: events, error } = await eventQueries.getUpcomingEvents()
+// The client automatically handles auth tokens and standardized responses
+const response = await apiClient.get('/events')
+const events = response.data
 ```
 
 ### 3. React Hooks
