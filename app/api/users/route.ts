@@ -62,7 +62,6 @@ export async function POST(request: NextRequest) {
       email,
       role,
       schoolId,
-      memberId,
       ecertificateUrl,
       certificateUrl,
     } = body
@@ -71,8 +70,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const resolvedEmail =
-      email || `${(username || memberId || `user-${Date.now()}`).toString()}@icpep.local`
+    let generatedMemberId = undefined
+    if (schoolId) {
+      const { data: school, error: schoolError } = await auth.admin
+        .from('schools')
+        .select('code')
+        .eq('id', schoolId)
+        .single()
+
+      if (schoolError || !school) {
+        return NextResponse.json({ error: 'Invalid school ID provided' }, { status: 400 })
+      }
+
+      const { count, error: countError } = await auth.admin
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('school_id', schoolId)
+
+      if (countError) {
+        return NextResponse.json({ error: 'Failed to calculate the next Member ID' }, { status: 500 })
+      }
+
+      const paddedId = String((count || 0) + 1).padStart(4, '0')
+      generatedMemberId = `ICPEPSE-NCR-${school.code.toUpperCase()}-${paddedId}`
+    }
+
+    const finalUsername = username || generatedMemberId || `user-${Date.now()}`
+    const resolvedEmail = email || `${finalUsername}@icpep.local`
 
     const certUrl = ecertificateUrl ?? certificateUrl
 
@@ -82,10 +106,10 @@ export async function POST(request: NextRequest) {
       {
         first_name: firstName,
         last_name: lastName,
-        username,
+        username: finalUsername,
         role,
         school_id: schoolId != null ? Number(schoolId) : undefined,
-        member_id: memberId,
+        member_id: generatedMemberId,
         ecertificate_url: certUrl,
       }
     )

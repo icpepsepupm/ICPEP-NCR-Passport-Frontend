@@ -37,6 +37,9 @@ async function safeFetch(endpoint: string, options: RequestInit = {}) {
 export function useSchools() {
   const [schools, setSchools] = useState<School[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchSchools = useCallback(async () => {
@@ -58,33 +61,51 @@ export function useSchools() {
   }, [fetchSchools]);
 
   const createSchool = async (data: { name: string; code: string }) => {
-    const result = await safeFetch('/api/admin/schools', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-    await fetchSchools();
-    return result;
+    try {
+      setIsCreating(true);
+      const result = await safeFetch('/api/admin/schools', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      await fetchSchools();
+      return result;
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const updateSchool = async (id: number, data: { name: string; code: string }) => {
-    const result = await safeFetch(`/api/admin/schools/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-    await fetchSchools();
-    return result;
+    try {
+      setIsUpdating(true);
+      const result = await safeFetch(`/api/admin/schools/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      await fetchSchools();
+      return result;
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const deleteSchool = async (id: number) => {
-    await safeFetch(`/api/admin/schools/${id}`, {
-      method: 'DELETE',
-    });
-    await fetchSchools();
+    try {
+      setIsDeleting(true);
+      await safeFetch(`/api/admin/schools/${id}`, {
+        method: 'DELETE',
+      });
+      await fetchSchools();
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return {
     schools,
     loading,
+    isCreating,
+    isUpdating,
+    isDeleting,
     error,
     refetch: fetchSchools,
     createSchool,

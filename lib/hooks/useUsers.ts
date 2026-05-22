@@ -54,8 +54,9 @@ export function useUsers(options?: {
   }, [fetchUsers, fetchSchools])
 
   const createUser = async (payload: Record<string, unknown>) => {
-    await apiClient.post('/users', payload)
+    const result = await apiClient.post<{ user: any; data: any }>('/users', payload)
     await fetchUsers()
+    return result.user || result.data || result
   }
 
   const updateUser = async (id: string, payload: Record<string, unknown>) => {
