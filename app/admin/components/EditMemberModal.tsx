@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { updateMember } from "@/app/actions/members";
 
 interface MemberUser {
     id: string;
@@ -40,6 +41,7 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
         password: "",
         certificateUrl: user.ecertificateUrl || user.certificateUrl || "",
     });
+    const [isLoading, setIsLoading] = useState(false);
 
     // Ensure schoolId defaults to first school if missing
     useEffect(() => {
@@ -53,13 +55,38 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
         setForm({ ...form, [e.target.name]: value });
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!form.firstName || !form.lastName || !form.role || !form.schoolId) {
             alert("First name, last name, role, and school are required.");
             return;
         }
-        // ✅ Always include id when submitting
-        onSubmit({ ...form, id: user.id });
+
+        setIsLoading(true);
+        try {
+            // Call server action to update member
+            const result = await updateMember(user.id, {
+                firstName: form.firstName,
+                lastName: form.lastName,
+                age: form.age ?? undefined,
+                role: form.role,
+                schoolId: form.schoolId,
+                password: form.password || undefined,
+                certificateUrl: form.certificateUrl,
+                // memberId is intentionally NOT sent - it's immutable
+            });
+
+            if (result.success) {
+                // Always include id when submitting
+                onSubmit({ ...result.data, id: user.id });
+            } else {
+                alert(result.error || "Failed to update member");
+            }
+        } catch (error) {
+            console.error("Error updating member:", error);
+            alert("An error occurred while updating the member");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -78,7 +105,7 @@ export default function EditMemberModal({ user, onClose, onSubmit, schools }: Ed
                 <div className="p-6 space-y-4">
                     <div className="rounded-lg border border-amber-400/20 bg-amber-500/5 p-3 mb-4">
                         <p className="text-[11px] text-amber-300/80">
-                            <strong>Note:</strong> Username cannot be changed. Password is optional - leave blank to keep current password.
+                            <strong>Note:</strong> Username and Member ID are auto-generated and cannot be changed. Password is optional - leave blank to keep current password.
                         </p>
                     </div>
 

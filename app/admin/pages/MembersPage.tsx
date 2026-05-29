@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Search, UserPlus, Edit2, Trash2, User as UserIcon, Shield, Crown, AlertCircle, FileText, RefreshCw } from "lucide-react";
 import AddMemberModal from "@/app/admin/components/AddMemberModal";
 import EditMemberModal from "@/app/admin/components/EditMemberModal";
+import CSVImportModal from "@/app/admin/components/CSVImportModal";
 import { useUsers } from "@/lib/hooks/useUsers";
 import type { ClientUser } from "@/lib/api/mappers";
 import { getErrorMessage } from "@/lib/api/errors";
@@ -12,6 +13,7 @@ export default function MembersPage() {
   const [editingUser, setEditingUser] = useState<ClientUser | null>(null);
   const [query, setQuery] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [actionError, setActionError] = useState<string | null>(null);
@@ -214,6 +216,7 @@ export default function MembersPage() {
 
         {showAddModal && <AddMemberModal onClose={() => setShowAddModal(false)} onSubmit={handleAddSubmit} schools={schools} />}
         {editingUser && <EditMemberModal user={{ ...editingUser, firstName: editingUser.firstName ?? "", lastName: editingUser.lastName ?? "" }} onClose={() => setEditingUser(null)} onSubmit={(data) => handleEditSubmit({ ...data, ecertificateUrl: data.certificateUrl })} schools={schools} />}
+        {showImportModal && <CSVImportModal onClose={() => setShowImportModal(false)} onSuccess={() => { refetch(); }} />}
       </div>
     </div>
   );

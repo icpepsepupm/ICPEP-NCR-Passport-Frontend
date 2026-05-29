@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { X } from "lucide-react";
+import { createMember } from "@/app/actions/members";
 
 // 1️⃣ Add certificateUrl to your User interface
 interface User {
@@ -23,29 +24,52 @@ interface School {
 
 interface AddMemberModalProps {
     onClose: () => void;
-    onSubmit: (data: Partial<User>) => void;
+    onSubmit: (data: Partial<User> & { memberId?: string }) => void;
     schools: School[];
 }
 
 export default function AddMemberModal({ onClose, onSubmit, schools }: AddMemberModalProps) {
     const [form, setForm] = useState<Partial<User>>({});
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!form.firstName || !form.lastName || !form.role || !form.schoolId || !form.password) {
             alert("First name, last name, role, school, and password are required.");
             return;
         }
 
-        if (form.role === "MEMBER" && !form.memberId) {
-            alert("Member ID is required for members.");
-            return;
-        }
+        setIsLoading(true);
+        try {
+            // Call server action which will auto-generate Member ID
+            const result = await createMember({
+                firstName: form.firstName,
+                lastName: form.lastName,
+                age: form.age,
+                role: form.role,
+                schoolId: form.schoolId,
+                password: form.password,
+                certificateUrl: form.certificateUrl,
+            });
 
-        onSubmit(form);
+            if (result.success && result.data) {
+                // Pass the complete response including auto-generated memberId
+                onSubmit({
+                    ...result.data,
+                    memberId: result.data.memberId,
+                });
+            } else {
+                alert(result.error || "Failed to create member");
+            }
+        } catch (error) {
+            console.error("Error creating member:", error);
+            alert("An error occurred while creating the member");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
 
@@ -62,7 +86,7 @@ export default function AddMemberModal({ onClose, onSubmit, schools }: AddMember
                 <div className="p-6 space-y-4">
                     <div className="rounded-lg border border-cyan-400/20 bg-cyan-500/5 p-3 mb-4">
                         <p className="text-[11px] text-cyan-300/80">
-                            <strong>Note:</strong> Username will be auto-generated based on role and school code (e.g., NCR-MB-SCHOOL-01).
+                            <strong>Note:</strong> Username and Member ID will be auto-generated based on role, school code, and algorithm (e.g., NCR-MB-SCHOOL-01).
                         </p>
                     </div>
 
@@ -154,21 +178,6 @@ export default function AddMemberModal({ onClose, onSubmit, schools }: AddMember
 
                         <div>
                             <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
-                                Member ID *
-                            </label>
-                            <input
-                                type="text"
-                                name="memberId"
-                                value={form.memberId || ""}
-                                onChange={handleChange}
-                                placeholder="MB-SCHOOL-001"
-                                className="w-full h-10 px-3 rounded-md border border-cyan-400/30 text-sm outline-none focus:border-cyan-300 transition-all"
-                                style={{ backgroundColor: "var(--input-bg)", color: "var(--input-text)" }}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-[11px] font-medium mb-2" style={{ color: "var(--text-secondary)" }}>
                                 Password *
                             </label>
                             <input
@@ -202,8 +211,9 @@ export default function AddMemberModal({ onClose, onSubmit, schools }: AddMember
                         <button
                             onClick={handleSubmit}
                             className="flex-1 h-10 rounded-md bg-teal-500/90 text-black font-semibold text-sm transition-all hover:bg-teal-400 active:scale-95 cursor-pointer"
+                            disabled={isLoading}
                         >
-                            Create Member
+                            {isLoading ? "Creating..." : "Create Member"}
                         </button>
                         <button
                             onClick={onClose}

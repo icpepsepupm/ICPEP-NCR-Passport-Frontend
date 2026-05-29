@@ -118,9 +118,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
 
+    const mappedUser = mapDbUser(data as Record<string, unknown>)
+    
     return NextResponse.json({
       success: true,
-      data: mapDbUser(data as Record<string, unknown>),
+      data: {
+        ...mappedUser,
+        memberId: generatedMemberId,
+      },
     })
   } catch (error) {
     console.error('Create user error:', error)
